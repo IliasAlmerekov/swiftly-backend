@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: scooteq-helpdesk-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    branch: main
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      # Add your environment variables in Render Dashboard
+      # - key: MONGO_URI
+      #   value: mongodb+srv://...
+      # - key: JWT_SECRET
+      #   value: your-secret-here
