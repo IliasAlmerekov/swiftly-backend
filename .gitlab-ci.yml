@@ -22,10 +22,8 @@ lint:
     key: $CI_COMMIT_REF_SLUG
     paths:
       - node_modules/
-    only:
-      - merge_requests
-      - develop
-      - main
+  rules:
+    - if: $CI_COMMIT_TAG
 
 # Test stage
 test:
@@ -38,10 +36,8 @@ test:
       key: $CI_COMMIT_REF_SLUG
       paths:
         - node_modules/
-  only:
-      - merge_requests
-      - develop
-      - main
+  rules:
+    - if: $CI_COMMIT_TAG
 
 # Build Docker image
 build:
@@ -51,10 +47,8 @@ build:
     - docker:dind
   script:
     - docker build -t scooteq-helpdesk-backend:$CI_COMMIT_SHA .
-  only:
-    - develop
-    - main
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
 
 deploy_production:
   stage: deploy
@@ -65,8 +59,8 @@ deploy_production:
   environment:
     name: production
     url: https://scooteq-helpdesk-backend.onrender.com
-  only:
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
   when: manual
 
 deploy_development:
@@ -78,6 +72,6 @@ deploy_development:
   environment:
     name: development
     url: https://scooteq-helpdesk-backend-dev.onrender.com
-  only:
-    - develop
+  rules:
+    - if: $CI_COMMIT_TAG
   when: manual
