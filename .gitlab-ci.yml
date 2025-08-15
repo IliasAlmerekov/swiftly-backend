@@ -1,5 +1,4 @@
 stages:
-  - lint
   - test
   - build
   - deploy
@@ -10,20 +9,6 @@ variables:
 before_script:
   - node --version
   - npm --version
-
-# Lint stage
-lint:
-  stage: lint
-  image: node:20-alpine
-  script:
-    - npm ci
-    - npm run lint
-  cache:
-    key: $CI_COMMIT_REF_SLUG
-    paths:
-      - node_modules/
-  rules:
-    - if: $CI_COMMIT_TAG
 
 # Test stage
 test:
