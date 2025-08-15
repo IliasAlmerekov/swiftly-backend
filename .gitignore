@@ -46,10 +46,6 @@ Thumbs.db
 dist/
 build/
 
-# Kubernetes deployment files (using Render instead)
-k8s/
-.gitlab-ci.yml
-
 # Temporary files
 tmp/
 temp/
