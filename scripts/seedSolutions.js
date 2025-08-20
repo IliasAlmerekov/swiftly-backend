@@ -62,7 +62,15 @@ const sampleSolutions = [
     keywords: ["bildschirm", "monitor", "schwarz", "kein bild", "display", "kabel"],
     category: "Hardware",
     priority: "High"
-  }
+  },
+  {
+    title: "Teams / Kanäle und Teams erscheinen nicht",
+    problem: "In Microsoft Teams werden keine Kanäle oder Teams angezeigt, wenn Benutzer in Teams links in der Liste auf 'Teams' klickt.",
+    solution: "Der Benutzer soll die 'Aktivitäten anklicken' und dort in einer 'Aktivität' auf 'Zu Kanal wechseln' klicken.",
+    keywords: ["teams", "kanäle", "anzeigen", "aktivitäten", "wechseln"],
+    category: "Software",
+    priority: "Medium"
+  },
 ];
 
 // Verbindung zur MongoDB herstellen und Daten einfügen

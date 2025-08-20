@@ -17,7 +17,7 @@
     "format:check": "prettier --check src/**/*.js",
     "render-build": "npm install",
     "render-start": "node src/server.js",
-    "seed:solutions": "node scripts/seedSolutions.js"
+    "seed:solutions": "node -e \"import('./scripts/seedSolutions.js').then(module => module.default())\""
   },
   "keywords": [
     "helpdesk",
