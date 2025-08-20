@@ -6,6 +6,8 @@ import process from "process";
 
 import authRoutes from "./routes/authRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
+import solutionRoutes from "./routes/solutionRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 
@@ -18,6 +20,12 @@ app.use("/api/auth", authRoutes);
 
 // Ticket-Routen
 app.use("/api/tickets", ticketRoutes);
+
+// Solution-Routen
+app.use("/api/solutions", solutionRoutes);
+
+// AI-Routen
+app.use("/api/ai", aiRoutes);
 
 app.get("/", (req, res) => {
   res.send("API live");
