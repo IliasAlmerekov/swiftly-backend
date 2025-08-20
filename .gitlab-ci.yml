@@ -7,6 +7,10 @@ variables:
   NODE_VERSION: "20"
   npm_config_cache: "$CI_PROJECT_DIR/.npm"
   npm_config_prefer_offline: "true"
+  # Test Environment Variables
+  JWT_SECRET: "test-secret-key-for-gitlab-ci"
+  JWT_EXPIRES: "1h"
+  NODE_ENV: "test"
 
 before_script:
   - node --version
@@ -15,7 +19,7 @@ before_script:
 # Test stage
 test:
   stage: test
-  image: node:20-alpine
+  image: node:20-bullseye
   script:
     - npm ci
     - npm run test
