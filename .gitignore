@@ -2,7 +2,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+# package-lock.json - Sollte NICHT ignoriert werden für bessere CI/CD
 
 
 node_modules/
