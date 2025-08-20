@@ -308,7 +308,8 @@ Antworte nur mit der Kategorie.`
       'spezialist',
       'kann nicht gelöst werden',
       'komplexes problem',
-      'administrator'
+      'administrator',
+      'keine Lösung'
     ];
 
     const responseText = aiResponse.toLowerCase();
