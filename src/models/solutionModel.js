@@ -1,0 +1,67 @@
+import mongoose from 'mongoose';
+
+const solutionSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 200
+  },
+  problem: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 1000
+  },
+  solution: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 2000
+  },
+  keywords: [{
+    type: String,
+    trim: true,
+    lowercase: true
+  }],
+  category: {
+    type: String,
+    required: true,
+    enum: ['Hardware', 'Software', 'Netzwerk', 'Account', 'Email', 'Sonstiges'],
+    default: 'Sonstiges'
+  },
+  priority: {
+    type: String,
+    enum: ['Low', 'Medium', 'High'],
+    default: 'Medium'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Index für bessere Suchperformance
+solutionSchema.index({ title: 'text', problem: 'text', solution: 'text', keywords: 'text' });
+solutionSchema.index({ category: 1 });
+solutionSchema.index({ isActive: 1 });
+
+// Middleware um updatedAt automatisch zu setzen
+solutionSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+export default mongoose.model('Solution', solutionSchema);

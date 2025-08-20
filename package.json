@@ -16,7 +16,8 @@
     "format": "prettier --write src/**/*.js",
     "format:check": "prettier --check src/**/*.js",
     "render-build": "npm install",
-    "render-start": "node src/server.js"
+    "render-start": "node src/server.js",
+    "seed:solutions": "node scripts/seedSolutions.js"
   },
   "keywords": [
     "helpdesk",
