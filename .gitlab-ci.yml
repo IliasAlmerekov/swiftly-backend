@@ -7,6 +7,10 @@ variables:
   NODE_VERSION: "20"
   npm_config_cache: "$CI_PROJECT_DIR/.npm"
   npm_config_prefer_offline: "true"
+  # MongoDB Memory Server Konfiguration für CI
+  MONGOMS_DOWNLOAD_DIR: "/tmp/mongodb-binaries"
+  MONGOMS_VERSION: "6.0.4"
+  MONGOMS_DISABLE_POSTINSTALL: "1"
 
 before_script:
   - node --version
@@ -15,7 +19,7 @@ before_script:
 # Test stage
 test:
   stage: test
-  image: node:20-alpine
+  image: node:20-bullseye
   script:
     - npm ci
     - npm run test
