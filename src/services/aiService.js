@@ -112,7 +112,11 @@ class AIService {
         'techniker', 'admin bitte', 'bitte ticket', 'ticket erstellen', 'create ticket', 'support ticket'
       ];
       const lowerUser = userMessage.toLowerCase();
-      const needsImmediateEscalation = sensitiveKeywords.some(k => lowerUser.includes(k));
+      const matchedSensitive = sensitiveKeywords.filter(k => lowerUser.includes(k));
+      const needsImmediateEscalation = matchedSensitive.length > 0;
+      if (needsImmediateEscalation) {
+        console.log('[AI-Service] Sensitive/Escalation Trigger erkannt:', matchedSensitive);
+      }
 
       // Schritt 1: Nach vorhandenen Lösungen suchen
       const solutions = needsImmediateEscalation ? [] : await this.searchSolutions(userMessage, this.config.maxSolutionsInContext);
@@ -226,7 +230,10 @@ Nur die Antwort, kein Meta.`;
       const aiResponse = completion.choices[0].message.content;
 
       // Prüfen ob Ticket-Erstellung empfohlen wird
-  const shouldCreateTicket = responseType === 'no_solution_found' || responseType === 'escalation_required' || this.shouldRecommendTicket(aiResponse, userMessage) || needsImmediateEscalation;
+      const shouldCreateTicket = responseType === 'no_solution_found' || responseType === 'escalation_required' || this.shouldRecommendTicket(aiResponse, userMessage) || needsImmediateEscalation;
+      if (shouldCreateTicket) {
+        console.log('[AI-Service] shouldCreateTicket=true', { responseType, needsImmediateEscalation, userMessage });
+      }
 
       console.log(`[AI-Service] Antwort generiert (${completion.usage?.total_tokens || 'N/A'} tokens)`);
 
