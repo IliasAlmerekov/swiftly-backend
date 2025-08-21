@@ -54,9 +54,13 @@ const solutionSchema = new mongoose.Schema({
 });
 
 // Index für bessere Suchperformance
-solutionSchema.index({ title: 'text', problem: 'text', solution: 'text', keywords: 'text' });
+solutionSchema.index({ title: 'text', problem: 'text', solution: 'text', keywords: 'text' }, {
+  name: 'text_search_index',
+  default_language: 'german'
+});
 solutionSchema.index({ category: 1 });
-solutionSchema.index({ isActive: 1 });
+solutionSchema.index({ isActive: 1, updatedAt: -1 });
+solutionSchema.index({ keywords: 1, isActive: 1 });
 
 // Middleware um updatedAt automatisch zu setzen
 solutionSchema.pre('save', function(next) {

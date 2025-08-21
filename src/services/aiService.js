@@ -25,24 +25,65 @@ class AIService {
    */
   async searchSolutions(query, limit = 5) {
     try {
-      // Mehrere Suchstrategien kombinieren
-      const solutions = await Solution.find({
+      let solutions = [];
+
+      // Strategie 1: Versuche Volltextsuche (wenn Text-Index verfügbar)
+      try {
+        solutions = await Solution.find({
+          isActive: true,
+          $text: { $search: query }
+        })
+        .select('title problem solution category priority keywords')
+        .sort({ score: { $meta: 'textScore' }, updatedAt: -1 })
+        .limit(limit);
+
+        if (solutions.length > 0) {
+          return solutions;
+        }
+      } catch (textSearchError) {
+        console.log('[AI-Service] Volltextsuche nicht verfügbar, verwende Alternative');
+      }
+
+      // Strategie 2: Separate Regex-Suchen (falls Volltextsuche fehlschlägt)
+      const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 2);
+      
+      // Titel-Suche
+      let titleMatches = await Solution.find({
         isActive: true,
-        $or: [
-          // Volltextsuche
-          { $text: { $search: query } },
-          // Titel-Suche (case-insensitive)
-          { title: { $regex: query, $options: 'i' } },
-          // Problem-Beschreibung-Suche
-          { problem: { $regex: query, $options: 'i' } },
-          // Keyword-Matching
-          { keywords: { $elemMatch: { $regex: query, $options: 'i' } } }
-        ]
+        title: { $regex: query, $options: 'i' }
       })
       .select('title problem solution category priority keywords')
-      .limit(limit)
-      .sort({ updatedAt: -1 }); // Neueste Lösungen zuerst
-      return solutions;
+      .sort({ updatedAt: -1 })
+      .limit(limit);
+
+      // Problem-Suche
+      let problemMatches = await Solution.find({
+        isActive: true,
+        problem: { $regex: query, $options: 'i' }
+      })
+      .select('title problem solution category priority keywords')
+      .sort({ updatedAt: -1 })
+      .limit(limit);
+
+      // Keywords-Suche (vereinfacht)
+      let keywordMatches = [];
+      if (searchTerms.length > 0) {
+        keywordMatches = await Solution.find({
+          isActive: true,
+          keywords: { $in: searchTerms.map(term => new RegExp(term, 'i')) }
+        })
+        .select('title problem solution category priority keywords')
+        .sort({ updatedAt: -1 })
+        .limit(limit);
+      }
+
+      // Ergebnisse kombinieren und Duplikate entfernen
+      const combinedResults = [...titleMatches, ...problemMatches, ...keywordMatches];
+      const uniqueResults = combinedResults.filter((solution, index, self) =>
+        index === self.findIndex(s => s._id.toString() === solution._id.toString())
+      );
+
+      return uniqueResults.slice(0, limit);
     } catch (error) {
       console.error('[AI-Service] Fehler bei der Lösungssuche:', error);
       return [];
@@ -57,14 +98,47 @@ class AIService {
    */
   async generateResponse(userMessage, conversationHistory = []) {
     try {
+      // Vorab: Prüfe ob Anfrage sensibel ist und sofortige Eskalation/Ticket erfordert
+      const sensitiveKeywords = [
+        // Lizenz / Schlüssel
+        'lizenz', 'license', 'lizenzschlüssel', 'serial', 'produktschlüssel', 'license key',
+        // Private / vertrauliche Daten
+        'kundendaten', 'client data', 'private daten', 'personenbezogen', 'personal data', 'pii', 'gehaltsdaten', 'salary', 'sozialversicherungs',
+        // Credentials / Secrets
+        'passwort', 'password', 'apikey', 'api key', 'token', 'secret', 'schlüssel', 'key=', 'auth token',
+        // Defekt / kritisch
+        'kaputt', 'defekt', 'broken', 'funktioniert nicht', 'geht nicht', 'crash', 'abgestürzt', 'nicht erreichbar', 'down', 'ausfall',
+        // Wunsch nach Ticket / Techniker
+        'techniker', 'admin bitte', 'bitte ticket', 'ticket erstellen', 'create ticket', 'support ticket'
+      ];
+      const lowerUser = userMessage.toLowerCase();
+      const needsImmediateEscalation = sensitiveKeywords.some(k => lowerUser.includes(k));
+
       // Schritt 1: Nach vorhandenen Lösungen suchen
-      const solutions = await this.searchSolutions(userMessage, this.config.maxSolutionsInContext);
+      const solutions = needsImmediateEscalation ? [] : await this.searchSolutions(userMessage, this.config.maxSolutionsInContext);
 
       let systemPrompt;
       let responseType;
       let relatedSolutions = [];
 
-      if (solutions.length > 0) {
+  if (needsImmediateEscalation) {
+    responseType = 'escalation_required';
+    systemPrompt = `# Rolle "ScooBot" – Sofortige Eskalation
+Die Benutzeranfrage erfordert wegen sensibler Inhalte / fehlender Rechte / defekter Systeme oder explizitem Ticket-Wunsch eine schnelle Übergabe an den Support.
+
+## Ziel
+Antworte sehr kurz (<= 50 Wörter) und ermutige zur Ticket-Erstellung. Keine technischen Spekulationen. Leake keinerlei vertrauliche, personenbezogene oder sicherheitsrelevante Daten. Teile keine Passwörter, Keys, Lizenzschlüssel oder interne Informationen. Formuliere freundlich, klar, motivierend.
+
+## Sprache
+Ermittle Sprache der letzten Benutzer-Nachricht (deutsch / englisch / russisch). Antworte in dieser Sprache. Falls unklar: Deutsch.
+
+## Struktur (eine knappe zusammenhängende Antwort, optional 1 Emoji am Ende):
+1. Kurzer Hinweis, dass das Thema manuelle Prüfung oder Berechtigung verlangt.
+2. Direkte Aufforderung ein Ticket zu erstellen ("Erstelle bitte ein Ticket" / EN: "Please create a ticket" / RU: "Создай, пожалуйста, тикет").
+3. Bitte um relevante Details (Screenshots, Fehlermeldung, Zeitpunkt).
+
+Keine Liste wenn nicht nötig, kein Copy der Original-Anfrage, nichts erfinden.`;
+  } else if (solutions.length > 0) {
         // Lösungen gefunden - erstelle Kontext
         responseType = 'solution_found';
         relatedSolutions = solutions;
@@ -79,88 +153,54 @@ Kategorie: ${sol.category}
 ---`
           ).join('\n\n');
 
-        systemPrompt = `# Persona
-Du bist "ScooBot", der offizielle KI-Helpdesk-Assistent der ScooTeq GmbH.
-- **Deine Aufgabe:** Du bist die erste Anlaufstelle für Mitarbeiter mit technischen Problemen.
-- **Dein Ziel:** Anfragen schnellstmöglich mit Lösungen aus der Wissensdatenbank beantworten oder, falls nötig, an den Second-Level-Support (via Ticket) eskalieren.
-- **Deine Tonalität:** Professionell, geduldig, freundlich, lösungsorientiert. Du verwendest die "Du"-Ansprache.
+  systemPrompt = `# Persona & Stil
+Du bist "ScooBot", ein interaktiver, freundlicher KI-Helpdesk-Assistent der ScooTeq GmbH. Du erklärst verständlich, vermeidest Fachjargon und klingst positiv und proaktiv.
 
-# Primärquelle: Wissensdatenbank-Kontext
+# Sprache
+Erkenne automatisch die Sprache der letzten Benutzer-Nachricht (Deutsch bevorzugt; unterstütze auch Englisch oder Russisch). Antworte in derselben Sprache. Falls Mischung: Deutsch. Max. 80 Wörter (Listenpunkte zählen nicht in das Wortlimit, aber sei trotzdem kompakt).
+
+# Kontext (interne Wissensbasis – NICHT wortgleich wiederholen, sondern umformulieren!)
 ${solutionsContext}
 
-# Workflow & Antwort-Logik
-Befolge diesen Prozess strikt:
+# Wichtige Regeln
+1. Keine sensiblen Daten, keine Passwörter, Keys, Lizenzschlüssel, personenbezogene oder vertrauliche Kundendaten herausgeben. Falls danach gefragt wird, antworte kreativ kurz, dass du das nicht weißt / nicht darfst und biete Ticket an.
+2. Lösung NIE wortgleich kopieren – stets umformulieren in alltagsnaher, nicht technischen Sprache.
+3. Schritt-für-Schritt immer als klare nummerierte Liste:
+   1. Öffne ...
+   2. Klicke ...
+   3. Prüfe ...
+4. Wenn Lösung nur teilweise passt: Kurzen Hinweis + Liste anpassen + optionaler Vorschlag zur Ticket-Erstellung, falls unklar.
+5. Sei interaktiv: sehr knapp, aber lebendig (max 1 Emoji optional am Ende, nur wenn natürlich). Keine überflüssigen Floskeln.
+6. Erfinde nichts. Wenn unsicher -> kurze höfliche Empfehlung Ticket zu erstellen.
 
-1.  **Analyse der Benutzeranfrage:** Verstehe das Kernproblem des Mitarbeiters.
+# Ablauf
+1. Analysiere Problem.
+2. Prüfe, ob eine der bereitgestellten Lösungen (Kontext) exakt oder ähnlich passt.
+3. Ausgabeformate:
+   - Exakte oder teilweise Lösung: Kurze Einleitung (1 Satz), dann nummerierte Liste mit umformulierter Anleitung.
+   - Unsicherheit / unvollständig: 1 kurzer Satz + 1-2 generische sichere Troubleshooting-Schritte + Hinweis auf Ticket-Möglichkeit.
 
-2.  **Abgleich mit Wissensdatenbank:**
-  *   **Priorität 1: Exakter Treffer:** Suche im Kontext nach einem Artikel, der das Problem exakt beschreibt.
-      *   **Aktion:** Wenn gefunden, gehe zu **Antwort-Typ 1**.
-  *   **Priorität 2: Teilweiser/Ähnlicher Treffer:** Wenn kein exakter Treffer, aber ein ähnliches Problem im Kontext beschrieben wird.
-      *   **Aktion:** Gehe zu **Antwort-Typ 2**.
-  *   **Priorität 3: Kein Treffer:** Wenn der Kontext keine relevanten Informationen enthält.
-      *   **Aktion:** Gehe zu **Antwort-Typ 3**.
-
-# Antwort-Typen
-
----
-**Antwort-Typ 1: Lösung gefunden**
-- **Struktur:**
-1. Freundliche Begrüßung.
-2. Bestätigung, dass eine Lösung verfügbar ist.
-3. Die Lösung als nummerierte Schritt-für-Schritt-Anleitung.
-- **Beispiel-Format:**
-"Hallo! Ich habe eine Anleitung für dein Problem gefunden. Bitte probiere die folgenden Schritte aus:
-1. [Erster Schritt]
-2. [Zweiter Schritt]
-3. [Dritter Schritt]"
-
----
-**Antwort-Typ 2: Allgemeine Hilfe**
-- **Struktur:**
-1. Freundliche Begrüßung.
-2. Hinweis, dass keine spezifische Anleitung gefunden wurde, aber allgemeine Schritte helfen könnten.
-3. Nenne 1-2 grundlegende Lösungsansätze (z.B. Neustart der Anwendung/des PCs, Kabelverbindung prüfen).
-- **Beispiel-Format:**
-"Hallo! Ich konnte keine exakte Anleitung für dein Problem finden. Oft hilft es aber schon, wenn du [Aktion 1, z.B. das Programm neu startest]. Prüfe bitte auch [Aktion 2, z.B. deine Internetverbindung]."
-
----
-**Antwort-Typ 3: Eskalation (Ticket erstellen)**
-- **Struktur:**
-1. Freundliche Begrüßung.
-2. Erklärung, dass das Problem eine manuelle Prüfung erfordert.
-3. Klare Anweisung, ein Ticket zu erstellen.
-- **Beispiel-Format:**
-"Hallo! Für dieses Problem habe ich leider keine automatisierte Lösung. Es muss von einem unserer Techniker geprüft werden. Bitte erstelle ein Ticket in unserem Helpdesk-System. Gib dabei so viele Details wie möglich an."
-
-# Globale Regeln
-- **Sprache:** Antworte immer auf Deutsch.
-- **Länge:** Halte dich kurz und bündig. Die Gesamtlänge sollte 80 Wörter nicht überschreiten (Listen ausgenommen).
-- **Keine Falschinformationen:** Erfinde niemals technische Lösungen oder Prozeduren. Wenn du unsicher bist, wähle Antwort-Typ 3.`
+# Ausgabe
+Nur die eigentliche Antwort ohne zusätzliche Meta-Kommentare.`
       } else {
         // Keine Lösungen gefunden - Ticket erstellen empfehlen
         responseType = 'no_solution_found';
+  systemPrompt = `# Persona
+Du bist "ScooBot" – interaktiv, freundlich, knapp. Keine Lösung in der Wissensbasis gefunden.
 
-        systemPrompt = `# Rolle und Ziel
-Du bist "ScooBot", der KI-Helpdesk-Assistent der ScooTeq GmbH. Dein Ziel ist es, einen Mitarbeiter klar und freundlich zur Erstellung eines Support-Tickets anzuleiten, wenn keine automatisierte Lösung existiert.
+# Sprache
+Automatische Spracherkennung (DE bevorzugt; EN/RU möglich). Antworte in Sprache des Benutzers. <= 80 Wörter.
 
-# Aufbau der Antwort
-Formuliere eine kurze und präzise Antwort, die exakt die folgenden drei Elemente in dieser Reihenfolge enthält:
+# Verhalten Wenn Keine Lösung
+1. Kurzer empathischer Satz: dass du gerade keine direkte Lösung hast.
+2. 1-2 sinnvolle generische, sichere Vorschläge (z.B. Anwendung neu starten, Verbindung prüfen) – nur wenn unbedenklich.
+3. Hinweis: Wenn das nicht hilft / weiterhin Problem besteht -> Ticket erstellen anbieten.
+4. Keine starren Phrasen; formuliere lebendig und variabel.
+5. Keine sensiblen Daten preisgeben; bei Nachfrage danach: sag kreativ, dass du das nicht liefern darfst.
+6. Optional max 1 Emoji.
 
-1.  **Problem-Status:** Eine freundliche Mitteilung, dass keine automatische Lösung gefunden wurde.
-*   *Beispiel-Formulierung:* "Für dieses spezielle Problem habe ich leider keine Lösung in meiner Wissensdatenbank."
-
-2.  **Klare Handlungsaufforderung:** Die direkte Empfehlung, ein Support-Ticket zu erstellen, und der Hinweis auf die persönliche Bearbeitung durch einen Techniker.
-*   *Beispiel-Formulierung:* "Bitte erstelle daher ein Support-Ticket, damit sich ein Techniker persönlich darum kümmern kann."
-
-3.  **Hilfreicher Zusatz (optional, aber empfohlen):** Ein kurzer Tipp für die Ticketerstellung.
-*   *Beispiel-Formulierung:* "Gib dabei bitte so viele Details wie möglich an."
-
-# Regeln
-- **Sprache:** Deutsch
-- **Tonalität:** Professionell, hilfsbereit und freundlich. Sprich den Mitarbeiter mit "Du" an.
-- **Länge:** Maximal 60 Wörter.
-- **Vorlage:** Orientiere dich sehr eng an den Beispiel-Formulierungen.`;
+# Ausgabe
+Nur die Antwort, kein Meta.`;
       }
 
       // Gesprächsverlauf begrenzen (letzte 6 Nachrichten)
@@ -186,12 +226,12 @@ Formuliere eine kurze und präzise Antwort, die exakt die folgenden drei Element
       const aiResponse = completion.choices[0].message.content;
 
       // Prüfen ob Ticket-Erstellung empfohlen wird
-      const shouldCreateTicket = responseType === 'no_solution_found' || this.shouldRecommendTicket(aiResponse, userMessage);
+  const shouldCreateTicket = responseType === 'no_solution_found' || responseType === 'escalation_required' || this.shouldRecommendTicket(aiResponse, userMessage) || needsImmediateEscalation;
 
       console.log(`[AI-Service] Antwort generiert (${completion.usage?.total_tokens || 'N/A'} tokens)`);
 
       return {
-        type: responseType,
+  type: responseType,
         message: aiResponse,
         relatedSolutions: relatedSolutions,
         shouldCreateTicket: shouldCreateTicket,
