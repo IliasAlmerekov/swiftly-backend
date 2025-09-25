@@ -1,230 +1,214 @@
+// src/services/AIService.js
 import OpenAI from 'openai';
+import AIRequestLog from '../models/aiLogs.js';
 import Solution from '../models/solutionModel.js';
 
-class AIService {
-  constructor() {
-    // OpenAI Client initialisieren
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
-
-    // Konfiguration
-    this.config = {
-      model: 'gpt-4o-mini',
-      maxTokens: 150,
-      temperature: 0.7,
-      maxSolutionsInContext: 3,
-      // NEU: Domänen-Gate Konfiguration
-      domainGate: {
-        minKeywordHits: 2,              // erforderliche Treffer in der Heuristik
-        classifierModel: 'gpt-4o-mini', // strenger Intent-Klassifikator
-        classifierMaxTokens: 3,
-        classifierTemperature: 0
-      }
-    };
-
-    // NEU: IT-Keyword-Allowlist für Heuristik
-    this.IT_KEYWORDS = [
-      // Infrastruktur/Netz
-      'netzwerk','vpn','ip','dns','dhcp','gateway','latency','bandwidth','ping','wlan','lan','proxy','firewall',
-      // Systeme/OS
-      'windows','macos','linux','ubuntu','debian','red hat','kernel','driver','treiber','update','patch',
-      // Security/Identity
-      'mfa','2fa','sso','oauth','saml','azure ad','encryption','tls','ssl','zertifikat','token','jwt','secrets',
-      // Software/Apps
-      'outlook','office','excel','teams','slack','jira','confluence','sap','vs code','ide','browser','chrome','edge','firefox',
-      // Dev/DevOps
-      'git','github','gitlab','branch','merge','pipeline','ci','cd','docker','kubernetes','helm','terraform','ansible',
-      'node','npm','pnpm','yarn','react','vite','astro','express','mongodb','mongoose','postgres','redis','nginx',
-      // Helpdesk
-      'ticket','incident','störung','fehlermeldung','log','stacktrace','monitoring','grafana','prometheus','sentry',
-      // Drucker/Hardware
-      'drucker','druckertreiber','scanner','toner','hdmi','ssd','ram','netzteil','monitor','peripherie',
-      // Allgemeine IT-Begriffe
-      'auth','login','anmeldung','berechtigung','zugriff','backup','restore','deployment','build','compile','performance'
-    ];
+/** ---------------------- Konstante Konfiguration & Muster ------------------- */
+const DEFAULT_CONFIG = {
+  model: 'gpt-4o-mini',
+  maxTokens: 150,
+  temperature: 0.7,
+  maxSolutionsInContext: 3,
+  domainGate: {
+    minKeywordHits: 2,
+    classifierModel: 'gpt-4o-mini',
+    classifierMaxTokens: 3,
+    classifierTemperature: 0
   }
+};
 
-  // --- Hilfsfunktionen ------------------------------------------------------
+const SELECT_FIELDS = 'title problem solution category priority keywords';
+const DEFAULT_SORT = { updatedAt: -1 };
+const TEXT_SORT = { score: { $meta: 'textScore' }, updatedAt: -1 };
 
-  detectLang(text) {
-    const t = (text || '').toLowerCase();
-    if (/[а-яё]/.test(t)) return 'ru';
-    // sehr einfache Heuristik für EN vs DE
-    if (/[a-z]/.test(t) && /the|and|please|how|error|issue|login|network/i.test(text)) return 'en';
-    return 'de';
-  }
+const IT_KEYWORDS = [
+  // Infrastruktur/Netz
+  'netzwerk','vpn','ip','dns','dhcp','gateway','latency','bandwidth','ping','wlan','lan','proxy','firewall',
+  // Systeme/OS
+  'windows','macos','linux','ubuntu','debian','red hat','kernel','driver','treiber','update','patch',
+  // Security/Identity
+  'mfa','2fa','sso','oauth','saml','azure ad','encryption','tls','ssl','zertifikat','token','jwt','secrets',
+  // Software/Apps
+  'outlook','office','excel','teams','slack','jira','confluence','sap','vs code','ide','browser','chrome','edge','firefox',
+  // Dev/DevOps
+  'git','github','gitlab','branch','merge','pipeline','ci','cd','docker','kubernetes','helm','terraform','ansible',
+  'node','npm','pnpm','yarn','react','vite','astro','express','mongodb','mongoose','postgres','redis','nginx',
+  // Helpdesk/Support
+  'ticket','incident','störung','fehlermeldung','log','stacktrace','monitoring','grafana','prometheus','sentry',
+  'techniker','spezialist','support','hilfe','problem','fehler','bug','issue',
+  // Drucker/Hardware
+  'drucker','druckertreiber','scanner','toner','hdmi','ssd','ram','netzteil','monitor','peripherie',
+  // Lizenzen/Software-Verwaltung
+  'lizenz','lizensen','license','key','serial','aktivierung','freischaltung','subscription','abonnement',
+  'produktschlüssel','upgrade','downgrade','verlängerung','renewal',
+  // Allgemeine IT-Begriffe
+  'auth','login','anmeldung','berechtigung','zugriff','backup','restore','deployment','build','compile','performance',
+  'installation','konfiguration','setup','einrichtung','wartung','maintenance'
+];
 
-  async isITIntent(userMessage, conversationHistory = []) {
-    const text = (userMessage || '').toLowerCase();
+// Gruß / Funktion (einmalig definiert & wiederverwendet)
+const GREETING_PATTERNS = [
+  /^(hallo|hi|hey|guten\s+(tag|morgen|abend)|moin|servus)$/i,
+  /^(hello|good\s+(morning|afternoon|evening))$/i,
+  /^(привет|здравствуй|добр(ый\s+день|ое\s+утро|ый\s+вечер))$/i
+];
+const FUNCTION_PATTERNS = [
+  /was\s+(kannst\s+du|machst\s+du|bist\s+du|ist\s+deine\s+aufgabe)/i,
+  /what\s+(can\s+you|do\s+you|are\s+you)/i,
+  /что\s+(ты\s+умеешь|ты\s+можешь|твоя\s+задача)/i,
+  /(funktionen|features|möglichkeiten|capabilities|возможности)/i,
+  /hilf(st\s+)?mir|help\s+me|помоги/i
+];
 
-    // Heuristik: Keyword-Hits zählen
-    const hits = this.IT_KEYWORDS.reduce((acc, kw) => acc + (text.includes(kw) ? 1 : 0), 0);
-    if (hits >= this.config.domainGate.minKeywordHits) return true;
+// IT-Heuristiken
+const COMMON_IT_PATTERNS = [
+  /software|hardware|computer|laptop|pc\b/i,
+  /password|passwort|kennwort|zugangsdaten/i,
+  /email|e-mail|outlook|mail/i,
+  /internet|network|netz/i,
+  /problem|fehler|error|issue|bug/i,
+  /install|setup|einricht|konfig/i,
+  /help|hilfe|support|unterstützung/i,
+  /system|programm|app|anwendung/i,
+  /license|lizenz|schlüssel|key/i,
+  /printer|drucker|scan/i,
+  /update|upgrade|patch/i,
+  /login|anmeld|zugang|berechtigung/i
+];
+const NON_IT_PATTERNS = [
+  /wetter|weather|погода/i,
+  /kochen|rezept|recipe|рецепт/i,
+  /sport|fußball|football|спорт/i,
+  /politik|politics|политика/i,
+  /musik|music|музыка/i,
+  /filme|movie|фильм/i,
+  /urlaub|vacation|отпуск/i,
+  /liebe|dating|любовь/i,
+  /gesundheit|health|здоровье/i
+];
 
-    // Fallback: strikter LLM-Klassifikator
-    try {
-      const cls = await this.openai.chat.completions.create({
-        model: this.config.domainGate.classifierModel,
-        temperature: this.config.domainGate.classifierTemperature,
-        max_tokens: this.config.domainGate.classifierMaxTokens,
-        frequency_penalty: 0.0,
-        presence_penalty: 0.0,
-        messages: [{
-          role: 'system',
-          content: [
-            'Du bist ein strenger Intent-Klassifikator.',
-            'Ziel: Bestimme, ob die NACHRICHT ein IT-spezifisches Anliegen ist (IT-Betrieb, Support, Software, Hardware, Netzwerk, Security, Dev/DevOps, Accounts, E-Mail, Helpdesk).',
-            'Antworte EXAKT mit einem Wort: IT oder NON-IT.',
-            'Keine Begründung, keine Beispiele, keine Zusatzwörter.'
-          ].join('\n')
-        }, {
-          role: 'user',
-          content: `NACHRICHT:\n"""${userMessage}"""`
-        }]
-      });
+const SENSITIVE_KEYWORDS = [
+  // Private / vertrauliche Daten
+  'kundendaten','client data','private daten','personenbezogen','personal data','pii','gehaltsdaten','salary','sozialversicherungs',
+  // Kritische Credentials / Secrets
+  'passwort vergessen','password reset','apikey','api key','token','secret','auth token',
+  // Defekt / kritisch
+  'kaputt','defekt','broken','funktioniert nicht','geht nicht','crash','abgestürzt','nicht erreichbar','down','ausfall',
+  // Expliziter Wunsch nach Ticket / Techniker
+  'techniker brauche','admin bitte','bitte ticket','ticket erstellen','create ticket','support ticket',
+  'spezialist brauche','kann nicht lösen','zu komplex'
+];
+const LICENSE_KEYWORDS = ['lizenz','lizensen','license','produktschlüssel','serial','aktivierung','freischaltung'];
 
-      const label = (cls.choices[0].message.content || '').trim().toUpperCase();
-      return label === 'IT';
-    } catch (e) {
-      // Bei Fehler konservativ blocken
-      console.warn('[AI-Service] Klassifikator-Fehler, blocke konservativ:', e?.message);
-      return false;
-    }
-  }
+// Ticket-Indikatoren
+const TICKET_RESPONSE_KEYWORDS = [
+  'ticket erstellen','ticket erstelle','support-ticket','weitere hilfe','techniker kontaktieren','techniker',
+  'spezialist','kann nicht gelöst werden','komplexes problem','administrator','keine lösung',
+  'gerne ein ticket','erstelle ich ein ticket'
+];
+const COMPLEXITY_KEYWORDS = [
+  'mehrere probleme','seit wochen','immer wieder','kritisch','dringend','produktionsausfall',
+  'hilfe brauche','hilfe benötige','support brauche','techniker brauche','spezialist brauche'
+];
+const HUMAN_HELP_KEYWORDS = ['techniker','spezialist','admin','jemand der sich auskennt','experte','kollege'];
 
-  // --- Wissensbasis-Suche ---------------------------------------------------
+/** ---------------------- Utility-Funktionen (klein & testbar) --------------- */
+const normalize = (t) => (t || '').toLowerCase();
+const matchAny = (text, patterns) => patterns.some((p) => p.test(text));
+const countHits = (text, keywords) => keywords.reduce((acc, kw) => acc + (text.includes(kw) ? 1 : 0), 0);
+const dedupeById = (arr) => {
+  const map = new Map();
+  for (const s of arr) map.set(s._id.toString(), s);
+  return [...map.values()];
+};
 
-  /**
-   * Sucht nach passenden Lösungen in der Datenbank
-   * @param {string} query - Suchanfrage des Benutzers
-   * @param {number} limit - Maximale Anzahl der Ergebnisse
-   * @returns {Array} Array von Solution-Objekten
-   */
-  async searchSolutions(query, limit = 5) {
-    try {
-      let solutions = [];
+// Функция для выбора случайного ответа
+const getRandomResponse = (responses, lang) => {
+  const langResponses = responses[lang] || responses.de;
+  return langResponses[Math.floor(Math.random() * langResponses.length)];
+};
 
-      // Strategie 1: Volltextsuche
-      try {
-        solutions = await Solution.find({
-          isActive: true,
-          $text: { $search: query }
-        })
-          .select('title problem solution category priority keywords')
-          .sort({ score: { $meta: 'textScore' }, updatedAt: -1 })
-          .limit(limit);
+const detectLang = (text) => {
+  const t = normalize(text);
+  if (/[а-яё]/.test(t)) return 'ru';
+  if (/[a-z]/.test(t) && /the|and|please|how|error|issue|login|network/i.test(text)) return 'en';
+  return 'de';
+};
 
-        if (solutions.length > 0) {
-          return solutions;
-        }
-      } catch (textSearchError) {
-        console.log('[AI-Service] Volltextsuche nicht verfügbar, verwende Alternative');
-      }
+// Случайные ответы для приветствий и вопросов о функциях
+const GREETING_RESPONSES = {
+  de: [
+    "Hallo! 👋 Ich bin ScooBot - Ihr digitaler IT-Retter! Wenn Computer bocken, Drucker streiken oder das WLAN mal wieder 'keine Lust' hat, bin ich da! Erzählen Sie mir, womit ich Ihnen helfen kann! 🔧",
+    "Hi! 😊 ScooBot hier - der freundlichste Bug-Jäger der ScooTeq! Ich löse IT-Probleme schneller als Sie 'Haben Sie schon mal versucht, es aus- und wieder einzuschalten?' sagen können! Was bereitet Ihnen Kopfzerbrechen? 🤔",
+    "Servus! 🎉 ScooBot meldet sich zum Dienst! Ich bin Ihr persönlicher IT-Superheld (ohne Umhang, aber mit viel Geduld). Ob Software-Hickhack oder Hardware-Drama - ich finde eine Lösung! Was läuft schief? 🦸‍♂️",
+    "Moin! ☀️ ScooBot hier! Ich verwandle IT-Alpträume in süße Träume! Von 'Das hat gestern noch funktioniert' bis 'Ich habe nichts verändert' - ich kenne alle Klassiker! Beschreiben Sie Ihr Problem! 😄"
+  ],
+  en: [
+    "Hello! 👋 I'm ScooBot - your friendly IT lifesaver! When computers misbehave, printers go on strike, or WiFi decides to take a vacation, I'm here to help! What's troubling you today? 🔧",
+    "Hi there! 😊 ScooBot reporting for duty! I'm like a digital detective, but instead of solving crimes, I solve 'Why won't this thing work?!' Tell me what's driving you crazy! 🕵️‍♂️",
+    "Hey! 🎉 ScooBot at your service! I turn IT nightmares into sweet dreams! From 'It worked yesterday' to 'I didn't change anything' - I've heard it all! What's the situation? 😄",
+    "Greetings! ⚡ I'm ScooBot, your tech-savvy sidekick! I speak fluent Computer and can translate error messages from 'gibberish' to 'oh, that makes sense!' What can I help you with? 🤖"
+  ],
+  ru: [
+    "Привет! 👋 Я ScooBot - ваш цифровой IT-спасатель! Когда компьютеры капризничают, принтеры бастуют, а WiFi 'не в настроении', я здесь, чтобы помочь! Расскажите, что вас беспокоит! 🔧",
+    "Здравствуйте! 😊 ScooBot на связи! Я как цифровой детектив, только вместо преступлений решаю загадки типа 'Почему это не работает?!' Что вас мучает? 🕵️‍♂️",
+    "Привет! 🎉 ScooBot к вашим услугам! Превращаю IT-кошмары в приятные сны! От 'Вчера работало' до 'Я ничего не трогал' - все слышал! В чём проблема? 😄",
+    "Приветствую! ⚡ Я ScooBot, ваш техно-помощник! Говорю на языке компьютеров и перевожу сообщения об ошибках с 'абракадабры' на 'а, понятно!' Чем могу помочь? 🤖"
+  ]
+};
 
-      // Strategie 2: Regex-Suchen
-      const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 2);
+const FUNCTION_RESPONSES = {
+  de: [
+    "Отлично спросили! 🎯 Я ScooBot - ваш IT-волшебник! Умею: \n✨ Решать проблемы с софтом (когда Excel снова 'думает')\n🔧 Чинить железо (кроме кофемашины, увы!)\n🌐 Настраивать сети (WiFi-шептун!)\n📧 Лечить почту\n🎫 Создавать тикеты для сложных случаев\nВ общем, если оно пищит, мигает или отказывается работать - я ваш бот! 🤖",
+    "Хороший вопрос! 🚀 Я цифровой доктор ScooTeq! Лечу:\n💊 Глючные программы\n🩺 Больные компьютеры  \n🏥 Хромающие сети\n💉 Вирусные почты\n🚑 А если совсем плохо - вызываю 'скорую' (создаю тикет технику)!\nКороче, я как швейцарский нож, только для IT! Что болит? 😄",
+    "О, вы попали по адресу! 🎪 ScooBot - это я! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВ общем, ваш персональный IT-джинн! Какое желание? 🧞‍♂️",
+    "Превосходный вопрос! 🏆 Я ScooBot - мастер на все руки в мире IT! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nВ общем, цифровой мастер на час! Что чинить будем? 🛠️"
+  ],
+  en: [
+    "Great question! 🎯 I'm ScooBot - your IT wizard! I can:\n✨ Fix software hiccups (when Excel is 'thinking' again)\n🔧 Repair hardware (except the coffee machine, sorry!)\n🌐 Tame networks (WiFi whisperer!)\n📧 Heal email ailments\n🎫 Create tickets for tricky cases\nBasically, if it beeps, blinks, or refuses to cooperate - I'm your bot! 🤖",
+    "Excellent question! 🚀 I'm ScooTeq's digital doctor! I treat:\n💊 Glitchy programs\n🩺 Sick computers\n🏥 Limping networks  \n💉 Infected emails\n🚑 When things get really bad - I call the 'ambulance' (create a tech ticket)!\nThink of me as a Swiss Army knife, but for IT! What's hurting? 😄",
+    "You've come to the right place! 🎪 ScooBot here! My superpowers:\n⚡ Resurrect 'dead' programs\n🔍 Find lost files\n🛡️ Protect from digital monsters\n🔗 Connect the unconnectable\n📋 If I can't handle it - I'll honestly say so and create a ticket!\nYour personal IT genie! What's your wish? 🧞‍♂️",
+    "Superb question! 🏆 I'm ScooBot - jack of all trades in the IT world! I specialize in:\n🎮 'Reviving' frozen programs\n🔌 Making hardware and software friends\n📡 Establishing 'communication' with the internet\n📬 Resurrecting email boxes\n🎟️ If the task is too tricky - I arrange a meeting with a live tech!\nDigital handyman at your service! What shall we fix? 🛠️"
+  ],
+  ru: [
+    "Отличный вопрос! 🎯 Я ScooBot - ваш IT-волшебник! Умею:\n✨ Чинить софтовые глюки (когда Excel снова 'думает')\n🔧 Ремонтировать железо (кроме кофемашины, увы!)\n🌐 Укрощать сети (шептун WiFi!)\n📧 Лечить почтовые болячки\n🎫 Создавать тикеты для хитрых случаев\nВ общем, если оно пищит, мигает или отказывается слушаться - я ваш бот! 🤖",
+    "Превосходный вопрос! 🚀 Я цифровой доктор ScooTeq! Лечу:\n💊 Глючные программы\n🩺 Больные компьютеры\n🏥 Хромающие сети\n💉 Зараженные почтовые ящики\n🚑 Когда совсем плохо - вызываю 'скорую' (создаю тикет технику)!\nПредставьте меня как швейцарский нож, только для IT! Что болит? 😄",
+    "Вы попали по адресу! 🎪 ScooBot здесь! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВаш персональный IT-джинн! Какое желание? 🧞‍♂️",
+    "Замечательный вопрос! 🏆 Я ScooBot - мастер на все руки в IT-мире! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nЦифровой мастер на час! Что чинить будем? 🛠️"
+  ]
+};
 
-      // Titel-Suche
-      let titleMatches = await Solution.find({
-        isActive: true,
-        title: { $regex: query, $options: 'i' }
-      })
-        .select('title problem solution category priority keywords')
-        .sort({ updatedAt: -1 })
-        .limit(limit);
+const SYSTEM_PROMPTS = {
+  greeting_or_function: `# Rolle "ScooBot" – Lebendige Begrüßung & Funktionserklärung
+Du bist ein freundlicher, humorvoller IT-Support-Bot der ScooTeq GmbH.
 
-      // Problem-Suche
-      let problemMatches = await Solution.find({
-        isActive: true,
-        problem: { $regex: query, $options: 'i' }
-      })
-        .select('title problem solution category priority keywords')
-        .sort({ updatedAt: -1 })
-        .limit(limit);
+## Ziel
+Der Benutzer begrüßt dich oder fragt nach deinen Funktionen. Du sollst eine zufällige, lebendige Antwort aus den vordefinierten Optionen wählen.
 
-      // Keywords-Suche
-      let keywordMatches = [];
-      if (searchTerms.length > 0) {
-        keywordMatches = await Solution.find({
-          isActive: true,
-          keywords: { $in: searchTerms.map(term => new RegExp(term, 'i')) }
-        })
-          .select('title problem solution category priority keywords')
-          .sort({ updatedAt: -1 })
-          .limit(limit);
-      }
+## Sprache
+Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser Sprache. Falls unklar: Deutsch.
 
-      // Kombinieren + Deduplizieren
-      const combinedResults = [...titleMatches, ...problemMatches, ...keywordMatches];
-      const uniqueResults = combinedResults.filter((solution, index, self) =>
-        index === self.findIndex(s => s._id.toString() === solution._id.toString())
-      );
+## Antwort-Verhalten
+Du hast Zugriff auf vordefinierte humorvolle Antworten. Wähle EINE zufällige Antwort aus den passenden Arrays basierend auf der erkannten Sprache und dem Intent (Begrüßung vs. Funktionsfrage).
 
-      return uniqueResults.slice(0, limit);
-    } catch (error) {
-      console.error('[AI-Service] Fehler bei der Lösungssuche:', error);
-      return [];
-    }
-  }
+Nur die ausgewählte Antwort ausgeben, keine Metadaten oder zusätzlichen Erklärungen.`,
+  license_request: `# Rolle "ScooBot" – Lizenz-Unterstützung
+Du bist ein freundlicher IT-Support-Bot, der bei Lizenz-Anfragen hilft.
 
-  // --- Antwortgenerierung ---------------------------------------------------
+## Ziel
+Der Benutzer fragt nach Software-Lizenzen, Produktschlüsseln oder Aktivierungen. Sei hilfsbereit und erkläre den Prozess.
 
-  /**
-   * Generiert eine intelligente Antwort basierend auf Benutzereingabe
-   * @param {string} userMessage - Nachricht des Benutzers
-   * @param {Array} conversationHistory - Verlauf des Gesprächs
-   * @returns {Object} Response-Objekt mit Antwort und Metadaten
-   */
-  async generateResponse(userMessage, conversationHistory = []) {
-    try {
-      // NEU: Domänen-Gate (frühzeitig)
-      const isIT = await this.isITIntent(userMessage, conversationHistory);
-      if (!isIT) {
-        const lang = this.detectLang(userMessage);
-        const msg = {
-          de: 'Ich beantworte ausschließlich IT-spezifische Anfragen (z. B. Login, Software, Netzwerk, Hardware, Dev/DevOps).',
-          en: 'I only handle IT-specific requests (e.g., login, software, network, hardware, Dev/DevOps).',
-          ru: 'Я отвечаю только на ИТ-запросы (логин, софт, сеть, железо, Dev/DevOps).'
-        }[lang];
-        return {
-          type: 'out_of_scope',
-          message: msg,
-          shouldCreateTicket: false,
-          metadata: { domainGate: 'blocked' }
-        };
-      }
+## Sprache
+Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser Sprache. Falls unklar: Deutsch.
 
-      // Vorab: Sensible/Eskalations-Keywords
-      const sensitiveKeywords = [
-        // Lizenz / Schlüssel
-        'lizenz','license','lizenzschlüssel','serial','produktschlüssel','license key',
-        // Private / vertrauliche Daten
-        'kundendaten','client data','private daten','personenbezogen','personal data','pii','gehaltsdaten','salary','sozialversicherungs',
-        // Credentials / Secrets
-        'passwort','password','apikey','api key','token','secret','schlüssel','key=','auth token',
-        // Defekt / kritisch
-        'kaputt','defekt','broken','funktioniert nicht','geht nicht','crash','abgestürzt','nicht erreichbar','down','ausfall',
-        // Wunsch nach Ticket / Techniker
-        'techniker','admin bitte','bitte ticket','ticket erstellen','create ticket','support ticket'
-      ];
-      const lowerUser = userMessage.toLowerCase();
-      const matchedSensitive = sensitiveKeywords.filter(k => lowerUser.includes(k));
-      const needsImmediateEscalation = matchedSensitive.length > 0;
-      if (needsImmediateEscalation) {
-        console.log('[AI-Service] Sensitive/Escalation Trigger erkannt:', matchedSensitive);
-      }
+## Antwort-Struktur (freundlich, max 80 Wörter + 1 Emoji):
+1. Freundliche Begrüßung, dass du bei Lizenzen helfen kannst
+2. Kurze Erklärung der üblichen Schritte (Admin-Rechte erforderlich, Lizenz-Verwaltung)
+3. Empfehlung: Ticket erstellen für direkte Hilfe beim Lizenz-Management
+4. Hinweis auf benötigte Informationen (Software-Name, Benutzer, Zweck)
 
-      // Schritt 1: Nach vorhandenen Lösungen suchen (nur wenn keine Sofort-Eskalation)
-      const solutions = needsImmediateEscalation ? [] : await this.searchSolutions(userMessage, this.config.maxSolutionsInContext);
-
-      let systemPrompt;
-      let responseType;
-      let relatedSolutions = [];
-
-      if (needsImmediateEscalation) {
-        responseType = 'escalation_required';
-        systemPrompt = `# Rolle "ScooBot" – Sofortige Eskalation
+Nur die Antwort ausgeben, keine Metadaten.`,
+  escalation_required: `# Rolle "ScooBot" – Sofortige Eskalation
 Die Benutzeranfrage erfordert wegen sensibler Inhalte / fehlender Rechte / defekter Systeme oder explizitem Ticket-Wunsch eine schnelle Übergabe an den Support.
 
 ## Ziel
@@ -239,140 +223,287 @@ Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser S
 2. Direkte Aufforderung, ein Ticket zu erstellen.
 3. Bitte um relevante Details (Screenshots, Fehlermeldung, Zeitpunkt).
 
-Nur die Antwort ausgeben.`;
-      } else if (solutions.length > 0) {
-        // Lösungen gefunden - Kontext bauen
-        responseType = 'solution_found';
-        relatedSolutions = solutions;
+Nur die Antwort ausgeben.`,
+  no_solution_found: `# Persona
+Du bist "ScooBot" – freundlich, hilfsbereit, optimistisch und mit einer Prise Humor! Auch ohne passende Lösung in der Wissensbasis versuchst du zu helfen.
 
-        const solutionsContext = solutions.map((sol, index) =>
-          `Lösung ${index + 1}:
+# Sprache
+Sprache spiegeln (DE/EN/RU). <= 120 Wörter + optional 1-2 Emojis.
+
+# Verhalten Wenn Keine Lösung
+1. Freundliche, leicht humorvolle Begrüßung - zeige Verständnis ("Ah, ein Klassiker!" oder "Das kenne ich!")
+2. 2–3 allgemeine, aber sichere Lösungsvorschläge mit einem Augenzwinkern:
+   - Neustart ("Der gute alte 'Aus-und-wieder-an-Trick'!")
+   - Verbindung/Einstellungen prüfen
+   - Updates installieren
+3. Humorvoller aber positiver Hinweis auf Ticket-Erstellung ("Zeit für die Profis!" oder "Lass uns die Experten ranschaffen!")
+4. Frage nach Details für das Ticket mit Ermutigung
+
+Sei lebendiger, verwende mal deutsche Wörter wie "tja", "hmm", zeige Persönlichkeit! Keine sensiblen Daten erfragen.
+
+# Ausgabe
+Nur die lebendige, humorvolle aber hilfreiche Antwort.`
+};
+
+const buildSolutionContext = (solutions) =>
+  solutions.map((sol, i) =>
+    `Lösung ${i + 1}:
 Titel: ${sol.title}
 Problem: ${sol.problem}
 Lösung: ${sol.solution}
 Kategorie: ${sol.category}
----`
-        ).join('\n\n');
+---`).join('\n\n');
 
+const buildClassifierMessages = (userMessage) => ([
+  {
+    role: 'system',
+    content: [
+      'Du bist ein hilfsbereiter Intent-Klassifikator für IT-Support.',
+      'Ziel: Bestimme, ob die NACHRICHT ein IT-spezifisches Anliegen sein KÖNNTE.',
+      'IT umfasst: Software, Hardware, Lizenzen, Netzwerk, E-Mail, Computer, Support, technische Hilfe.',
+      'WICHTIG: Begrüßungen und Fragen nach Bot-Funktionen sind IMMER IT-relevant.',
+      'Sei großzügig - im Zweifel eher IT als NON-IT.',
+      'Antworte EXAKT mit: IT oder NON-IT.',
+      'Keine Erklärungen.'
+    ].join('\n')
+  },
+  { role: 'user', content: `NACHRICHT:\n"""${userMessage}"""` }
+]);
+
+/** ---------------------- Service-Klasse ------------------------------------ */
+class AIService {
+  constructor() {
+    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this.config = { ...DEFAULT_CONFIG };
+    this.IT_KEYWORDS = IT_KEYWORDS;
+  }
+
+  /** Sprache erkennen (klein & robust) */
+  detectLang(text) {
+    return detectLang(text);
+  }
+
+  /** Intent-Heuristik + LLM-Fallback (früh & konservativ) */
+  async isITIntent(userMessage, conversationHistory = []) {
+    const text = normalize(userMessage);
+
+    // 1) Begrüßung/Funktionsfrage => immer IT
+    if (matchAny(userMessage, GREETING_PATTERNS) || matchAny(userMessage, FUNCTION_PATTERNS)) return true;
+
+    // 2) Keyword-Heuristik
+    if (countHits(text, this.IT_KEYWORDS) >= 1) return true;
+
+    // 3) Generische IT-Begriffe
+    if (matchAny(text, COMMON_IT_PATTERNS)) return true;
+
+    // 4) Offensichtliche Nicht-IT
+    if (matchAny(text, NON_IT_PATTERNS)) return false;
+
+    // 5) Kurze/unklare Nachrichten => optimistisch
+    if (text.length < 50) return true;
+
+    // 6) LLM-Klassifikator (robuster Fallback)
+    try {
+      const cls = await this.openai.chat.completions.create({
+        model: this.config.domainGate.classifierModel,
+        temperature: this.config.domainGate.classifierTemperature,
+        max_tokens: this.config.domainGate.classifierMaxTokens,
+        frequency_penalty: 0.0,
+        presence_penalty: 0.0,
+        messages: buildClassifierMessages(userMessage)
+      });
+      const label = (cls.choices[0].message.content || '').trim().toUpperCase();
+      return label === 'IT';
+    } catch (e) {
+      console.warn('[AI-Service] Klassifikator-Fehler, erlaube optimistisch:', e?.message);
+      return true;
+    }
+  }
+
+  /** Wissensbasis-Suche (Fulltext -> Fallback) */
+  async searchSolutions(query, limit = 5) {
+    try {
+      // 1) Volltext (falls Textindex vorhanden)
+      try {
+        const textResults = await Solution.find({ isActive: true, $text: { $search: query } })
+          .select(SELECT_FIELDS)
+          .sort(TEXT_SORT)
+          .limit(limit);
+        if (textResults.length) return textResults;
+      } catch {
+        // still & simple fallback
+      }
+
+      // 2) Fallback: Titel/Problem/Keywords (parallel)
+      const searchTerms = normalize(query).split(' ').filter((t) => t.length > 2);
+      const [titleMatches, problemMatches, keywordMatches] = await Promise.all([
+        Solution.find({ isActive: true, title: { $regex: query, $options: 'i' } })
+          .select(SELECT_FIELDS).sort(DEFAULT_SORT).limit(limit),
+        Solution.find({ isActive: true, problem: { $regex: query, $options: 'i' } })
+          .select(SELECT_FIELDS).sort(DEFAULT_SORT).limit(limit),
+        searchTerms.length
+          ? Solution.find({ isActive: true, keywords: { $in: searchTerms.map((t) => new RegExp(t, 'i')) } })
+            .select(SELECT_FIELDS).sort(DEFAULT_SORT).limit(limit)
+          : Promise.resolve([])
+      ]);
+
+      return dedupeById([...titleMatches, ...problemMatches, ...keywordMatches]).slice(0, limit);
+    } catch (error) {
+      console.error('[AI-Service] Fehler bei der Lösungssuche:', error);
+      return [];
+    }
+  }
+
+  /** Antwortgenerierung (Hauptfluss) */
+  async generateResponse(userMessage, conversationHistory = []) {
+    try {
+
+      await AIRequestLog.create({ prompt: userMessage }); // Logging request
+      // 0) Domain-Gate
+      const isIT = await this.isITIntent(userMessage, conversationHistory);
+      if (!isIT) {
+        const lang = this.detectLang(userMessage);
+        const msg = {
+          de: 'Hallo! 😊 Ich bin auf IT-Themen spezialisiert. Wenn Sie Fragen zu Software, Hardware, Netzwerk oder anderen IT-Problemen haben, helfe ich gerne weiter!',
+          en: "Hello! 😊 I specialize in IT topics. If you have questions about software, hardware, networks, or other IT issues, I'd be happy to help!",
+          ru: 'Привет! 😊 Я специализируюсь на ИТ-вопросах. Если у вас есть вопросы по софту, железу, сетям или другим ИТ-проблемам, буду рад помочь!'
+        }[lang] || 'Hallo! 😊 Ich bin auf IT-Themen spezialisiert. Wenn Sie Fragen zu Software, Hardware, Netzwerk oder anderen IT-Problemen haben, helfe ich gerne weiter!';
+        return {
+          type: 'out_of_scope',
+          message: msg,
+          shouldCreateTicket: false,
+          metadata: { domainGate: 'blocked' }
+        };
+      }
+
+      const lower = normalize(userMessage);
+      const needsImmediateEscalation = SENSITIVE_KEYWORDS.some((k) => lower.includes(k));
+      const isLicenseRequest = LICENSE_KEYWORDS.some((k) => lower.includes(k));
+      const isGreeting = matchAny(userMessage, GREETING_PATTERNS);
+      const isFunctionQuestion = matchAny(userMessage, FUNCTION_PATTERNS);
+
+      // 1) Lösungen nur suchen, wenn sinnvoll
+      const shouldSearch = !isGreeting && !isFunctionQuestion && !(needsImmediateEscalation && !isLicenseRequest);
+      const solutions = shouldSearch
+        ? await this.searchSolutions(userMessage, this.config.maxSolutionsInContext)
+        : [];
+
+      // 2) Prompt-Typ bestimmen
+      let responseType;
+      let systemPrompt;
+      let relatedSolutions = [];
+      let directResponse = null; // Для прямых случайных ответов
+
+      if (isGreeting || isFunctionQuestion) {
+        responseType = 'greeting_or_function';
+        const lang = this.detectLang(userMessage);
+        
+        // Выбираем случайный ответ в зависимости от типа вопроса
+        if (isFunctionQuestion) {
+          directResponse = getRandomResponse(FUNCTION_RESPONSES, lang);
+        } else {
+          directResponse = getRandomResponse(GREETING_RESPONSES, lang);
+        }
+      } else if (isLicenseRequest && solutions.length === 0) {
+        responseType = 'license_request';
+        systemPrompt = SYSTEM_PROMPTS.license_request;
+      } else if (needsImmediateEscalation) {
+        responseType = 'escalation_required';
+        systemPrompt = SYSTEM_PROMPTS.escalation_required;
+      } else if (solutions.length > 0) {
+        responseType = 'solution_found';
+        relatedSolutions = solutions;
+        const solutionsContext = buildSolutionContext(solutions);
         systemPrompt = `# Persona & Stil
-Du bist "ScooBot", ein interaktiver, freundlicher KI-Helpdesk-Assistent der ScooTeq GmbH. Du erklärst verständlich, vermeidest Fachjargon und klingst positiv.
+Du bist "ScooBot", ein freundlicher, hilfsbereiter und leicht humorvoller KI-Assistent der ScooTeq GmbH. Du bist begeistert zu helfen und erklärst Dinge verständlich, positiv und mit einem Augenzwinkern! 😊
 
 # Sprache
-Erkenne automatisch die Sprache der letzten Benutzer-Nachricht (DE bevorzugt; EN/RU möglich). Antworte in derselben Sprache. Max. 80 Wörter (Listenpunkte zählen nicht, bleibe trotzdem kompakt).
+Erkenne automatisch die Sprache der letzten Benutzer-Nachricht (DE bevorzugt; EN/RU möglich). Antworte in derselben Sprache. Max. 130 Wörter + optional 1-2 Emojis.
 
 # Kontext (interne Wissensbasis – NICHT wortgleich wiederholen)
 ${solutionsContext}
 
 # Wichtige Regeln
-1. Keine sensiblen Daten (Passwörter, Keys, PII).
-2. Lösung NIEMALS wortgleich kopieren – stets umformulieren.
-3. Anleitung als nummerierte Liste:
-   1. Öffne …
-   2. Klicke …
-   3. Prüfe …
-4. Wenn nur teilweise passend: Kurz kennzeichnen, Schritte anpassen, Ticket als Option anbieten.
-5. Nichts erfinden. Bei Unsicherheit: Ticket empfehlen.
-6. **Strikte Domäne:** Antworte NUR auf IT-Themen. Wenn nicht IT: Antworte knapp "Ich beantworte ausschließlich IT-spezifische Anfragen." und sonst nichts.
+1. Sei freundlich, optimistisch und zeige Persönlichkeit - verwende mal "Ah!", "Aha!", "Das kenne ich!"
+2. Lösung NIEMALS wortgleich kopieren – stets umformulieren und vereinfachen mit eigenem Stil
+3. Klare Schritt-für-Schritt Anleitung mit gelegentlichen aufmunternden Kommentaren:
+   1. Öffne ... (manchmal mit "Zuerst mal..." oder "Los geht's...")
+   2. Klicke auf ... 
+   3. Prüfe ob ... ("Schauen wir mal ob...")
+4. Bei teilweiser Übereinstimmung: "Das könnte der Schuldige sein!" oder "Probieren wir mal..." + Schritte + humorvoller Ticket-Hinweis
+5. Keine sensiblen Daten erfragen, aber freundlich darauf hinweisen
+6. Bei Unsicherheit lebendige Formulierungen: "Hmm, das ist knifflig!" + Ticket als "Verstärkung rufen"
 
-# Ablauf
-1. Problem analysieren.
-2. Passende Lösung aus Kontext wählen/ableiten.
-3. Ausgabeformate:
-   - Passend: 1 Satz Einleitung + nummerierte Liste.
-   - Unsicherheit: 1 Satz + 1–2 sichere generische Schritte + Ticket-Hinweis.
+# Ausgabe-Stil (variiere gelegentlich):
+- "Ah, das kenne ich! Lass uns das angehen:" 
+- "Perfekt, da kann ich helfen! Probieren Sie mal:"
+- "Das ist ein Klassiker! Hier die Lösung:"
+- "Aha! Da haben wir den Übeltäter! So geht's:"
 
 # Ausgabe
-Nur die eigentliche Antwort.`;
+Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
       } else {
-        // Keine Lösungen gefunden
         responseType = 'no_solution_found';
-        systemPrompt = `# Persona
-Du bist "ScooBot" – interaktiv, freundlich, knapp. Keine Lösung in der Wissensbasis gefunden.
-
-# Sprache
-Sprache spiegeln (DE/EN/RU). <= 80 Wörter.
-
-# Verhalten Wenn Keine Lösung
-1. Kurzer empathischer Satz: aktuell keine direkte Lösung.
-2. 1–2 sinnvolle, sichere Vorschläge (z. B. App/PC neu starten, Verbindung prüfen) – nur unbedenklich.
-3. Hinweis: Falls weiter Probleme bestehen -> Ticket erstellen.
-4. Keine sensiblen Daten, nichts erfinden.
-5. **Strikte Domäne:** Nur IT-Themen beantworten. Wenn nicht IT: Knapp ablehnen.
-
-# Ausgabe
-Nur die Antwort, kein Meta.`;
+        systemPrompt = SYSTEM_PROMPTS.no_solution_found;
       }
 
-      // Gesprächsverlauf begrenzen (letzte 6 Nachrichten)
-      const limitedHistory = conversationHistory.slice(-6);
+      // 3) Генерация ответа
+      let aiResponse;
+      let tokensUsed = 0;
 
-      // Messages für OpenAI vorbereiten
-      const messages = [
-        { role: 'system', content: systemPrompt },
-        ...limitedHistory,
-        { role: 'user', content: userMessage }
-      ];
+      if (directResponse) {
+        // Используем предопределенный случайный ответ
+        aiResponse = directResponse;
+      } else {
+        // Используем OpenAI для генерации ответа
+        const limitedHistory = conversationHistory.slice(-6);
+        const messages = [{ role: 'system', content: systemPrompt }, ...limitedHistory, { role: 'user', content: userMessage }];
 
-      console.log(`[AI-Service] Sende Anfrage an OpenAI (${this.config.model})`);
+        const completion = await this.openai.chat.completions.create({
+          model: this.config.model,
+          messages,
+          max_tokens: this.config.maxTokens,
+          temperature: this.config.temperature,
+          frequency_penalty: 0.2,
+          presence_penalty: 0.0
+        });
 
-      // OpenAI API Aufruf
-      const completion = await this.openai.chat.completions.create({
-        model: this.config.model,
-        messages: messages,
-        max_tokens: this.config.maxTokens,
-        temperature: this.config.temperature,
-        frequency_penalty: 0.2,  // leichtes "Anti-Plaudern"
-        presence_penalty: 0.0
-      });
+        aiResponse = completion.choices[0]?.message?.content || '';
+        tokensUsed = completion.usage?.total_tokens || 0;
+      }
 
-      const aiResponse = completion.choices[0].message.content;
-
-      // Prüfen ob Ticket-Erstellung empfohlen wird
+      // 4) Ticket-Empfehlung
       const shouldCreateTicket =
         responseType === 'no_solution_found' ||
         responseType === 'escalation_required' ||
-        this.shouldRecommendTicket(aiResponse, userMessage) ||
+        responseType === 'license_request' ||
+        (responseType !== 'greeting_or_function' && this.shouldRecommendTicket(aiResponse, userMessage)) ||
         needsImmediateEscalation;
-
-      if (shouldCreateTicket) {
-        console.log('[AI-Service] shouldCreateTicket=true', { responseType, needsImmediateEscalation, userMessage });
-      }
-
-      console.log(`[AI-Service] Antwort generiert (${completion.usage?.total_tokens || 'N/A'} tokens)`);
 
       return {
         type: responseType,
         message: aiResponse,
-        relatedSolutions: relatedSolutions,
-        shouldCreateTicket: shouldCreateTicket,
+        relatedSolutions,
+        shouldCreateTicket,
         metadata: {
-          tokensUsed: completion.usage?.total_tokens || 0,
+          tokensUsed,
           model: this.config.model,
-          solutionsFound: solutions.length
+          solutionsFound: solutions.length,
+          usedDirectResponse: !!directResponse
         }
       };
-
     } catch (error) {
       console.error('[AI-Service] Fehler bei der Antwortgenerierung:', error);
-
       return {
         type: 'error',
         message: 'Entschuldigung, es gab einen technischen Fehler. Bitte versuchen Sie es erneut oder erstellen Sie ein Support-Ticket für weitere Hilfe.',
         shouldCreateTicket: true,
-        metadata: {
-          error: error.message
-        }
+        metadata: { error: error.message }
       };
     }
   }
 
-  // --- Analyse & Klassifikation --------------------------------------------
-
-  /**
-   * Analysiert die Priorität eines Problems
-   * @param {string} message - Benutzer-Nachricht
-   * @returns {string} Prioritätslevel (Low, Medium, High)
-   */
+  /** Priorität bestimmen (einfaches Single-Label) */
   async analyzePriority(message) {
     try {
       const completion = await this.openai.chat.completions.create({
@@ -394,26 +525,17 @@ Kategorien:
 - High: Kritische Probleme, schwere Arbeitsunterbrechung, Systemausfall
 
 Antworte nur mit: Low, Medium oder High`
-        }, {
-          role: 'user',
-          content: message
-        }]
+        }, { role: 'user', content: message }]
       });
-
-      const priority = (completion.choices[0].message.content || '').trim();
-      return ['Low', 'Medium', 'High'].includes(priority) ? priority : 'Medium';
-
-    } catch (error) {
-      console.error('[AI-Service] Fehler bei Prioritätsanalyse:', error);
+      const out = (completion.choices[0]?.message?.content || '').trim();
+      return ['Low', 'Medium', 'High'].includes(out) ? out : 'Medium';
+    } catch (e) {
+      console.error('[AI-Service] Fehler bei Prioritätsanalyse:', e);
       return 'Medium';
     }
   }
 
-  /**
-   * Kategorisiert ein Problem automatisch
-   * @param {string} message - Benutzer-Nachricht
-   * @returns {string} Kategorie
-   */
+  /** Kategorie bestimmen (Single-Label) */
   async categorizeIssue(message) {
     try {
       const completion = await this.openai.chat.completions.create({
@@ -433,72 +555,35 @@ Antworte nur mit: Low, Medium oder High`
 - Sonstiges: Alles andere
 
 Antworte nur mit der Kategorie.`
-        }, {
-          role: 'user',
-          content: message
-        }]
+        }, { role: 'user', content: message }]
       });
-
-      const category = (completion.choices[0].message.content || '').trim();
-      const validCategories = ['Hardware', 'Software', 'Netzwerk', 'Account', 'Email', 'Sonstiges'];
-      return validCategories.includes(category) ? category : 'Sonstiges';
-
-    } catch (error) {
-      console.error('[AI-Service] Fehler bei Kategorisierung:', error);
+      const out = (completion.choices[0]?.message?.content || '').trim();
+      const valid = ['Hardware', 'Software', 'Netzwerk', 'Account', 'Email', 'Sonstiges'];
+      return valid.includes(out) ? out : 'Sonstiges';
+    } catch (e) {
+      console.error('[AI-Service] Fehler bei Kategorisierung:', e);
       return 'Sonstiges';
     }
   }
 
-  /**
-   * Prüft ob ein Ticket empfohlen werden sollte
-   * @param {string} aiResponse - AI-Antwort
-   * @param {string} userMessage - Original Benutzer-Nachricht
-   * @returns {boolean} True wenn Ticket empfohlen wird
-   */
+  /** Ticket-Empfehlung (Heuristik) */
   shouldRecommendTicket(aiResponse, userMessage) {
-    const ticketKeywords = [
-      'ticket erstellen',
-      'support-ticket',
-      'weitere hilfe',
-      'techniker kontaktieren',
-      'spezialist',
-      'kann nicht gelöst werden',
-      'komplexes problem',
-      'administrator',
-      'keine lösung'
-    ];
-
-    const responseText = (aiResponse || '').toLowerCase();
-    const hasTicketKeyword = ticketKeywords.some(keyword => responseText.includes(keyword));
-
-    // Komplexitäts-Indikatoren in der ursprünglichen Nachricht
-    const complexityKeywords = [
-      'mehrere probleme',
-      'seit wochen',
-      'immer wieder',
-      'kritisch',
-      'dringend',
-      'produktionsausfall'
-    ];
-
-    const userText = (userMessage || '').toLowerCase();
-    const isComplexIssue = complexityKeywords.some(keyword => userText.includes(keyword));
-
-    return hasTicketKeyword || isComplexIssue;
+    const responseText = normalize(aiResponse);
+    const userText = normalize(userMessage);
+    const hasTicketKeyword = TICKET_RESPONSE_KEYWORDS.some((k) => responseText.includes(k));
+    const isComplexIssue = COMPLEXITY_KEYWORDS.some((k) => userText.includes(k));
+    const needsHumanHelp = HUMAN_HELP_KEYWORDS.some((k) => userText.includes(k));
+    return hasTicketKeyword || isComplexIssue || needsHumanHelp;
   }
 
-  // --- Konfig & Verbindung --------------------------------------------------
-
+  /** Konfig & Verbindung */
   isConfigured() {
     return !!process.env.OPENAI_API_KEY;
   }
 
   async testConnection() {
     try {
-      if (!this.isConfigured()) {
-        throw new Error('OpenAI API Key nicht konfiguriert');
-      }
-
+      if (!this.isConfigured()) throw new Error('OpenAI API Key nicht konfiguriert');
       const completion = await this.openai.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: 'Hallo' }],
@@ -507,14 +592,12 @@ Antworte nur mit der Kategorie.`
         frequency_penalty: 0.0,
         presence_penalty: 0.0
       });
-
       return {
         success: true,
         message: 'OpenAI Verbindung erfolgreich',
         model: this.config.model,
-        response: completion.choices[0].message.content
+        response: completion.choices[0]?.message?.content || ''
       };
-
     } catch (error) {
       return {
         success: false,
@@ -526,3 +609,5 @@ Antworte nur mit der Kategorie.`
 }
 
 export default new AIService();
+// Optional: benannte Exporte für Tests (keine Breaking Changes)
+export { detectLang as _detectLang, matchAny as _matchAny, countHits as _countHits };
