@@ -1,6 +1,7 @@
 import express from 'express';
 import aiService from '../services/aiService.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
+import { getAIRequestsStats } from '../controllers/aiController.js';
 
 const router = express.Router();
 
@@ -229,7 +230,7 @@ router.get('/status', async (req, res) => {
  * @desc    Testet die Verbindung zu OpenAI (nur für Entwicklung/Tests)
  * @access  Private
  */
-router.post('/test-connection', async (req, res) => {
+router.post('', async (req, res) => {
   try {
     const testResult = await aiService.testConnection();
     
@@ -256,5 +257,7 @@ router.post('/test-connection', async (req, res) => {
     });
   }
 });
+
+router.get('/stats', getAIRequestsStats);
 
 export default router;
