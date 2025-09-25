@@ -77,20 +77,32 @@ export const login = async (req, res) => {
 // Alle Admins abrufen (für Ticket-Zuweisung)
 export const getAdmins = async (req, res) => {
   try {
+    console.log("getAdmins called by user:", req.user);
+
     // Überprüfe, ob der anfragende User authentifiziert ist
     if (!req.user) {
+      console.log("User not authenticated in getAdmins");
       return res.status(401).json({ message: "Not authenticated" });
     }
 
+    // Erst mal alle User anzeigen zur Debugging
+    const allUsers = await User.find({}).select("name email role _id");
+    console.log("All users in database:", allUsers);
+
     // Finde alle User mit Rolle 'admin'
-    const admins = await User.find({ role: "admin" }).select("name email _id");
+    const admins = await User.find({ role: "admin" }).select("name email _id role");
+    console.log("Found admins:", admins);
+    console.log("Number of admins found:", admins.length);
 
     if (!admins || admins.length === 0) {
-      return res.status(404).json({ message: "No admin users found" });
+      console.log("No admin users found, returning empty array instead of 404");
+      // Возвращаем пустой массив вместо 404 ошибки
+      return res.status(200).json([]);
     }
 
     res.status(200).json(admins);
   } catch (error) {
+    console.error("Error in getAdmins:", error);
     res.status(500).json({
       message: "Failed to fetch admin users",
       error: error.message,

@@ -8,6 +8,9 @@ import authRoutes from "./routes/authRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import solutionRoutes from "./routes/solutionRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import { markInactiveUsersOffline } from "./controllers/userStatusController.js";
 
 dotenv.config();
 
@@ -26,6 +29,12 @@ app.use("/api/solutions", solutionRoutes);
 
 // AI-Routen
 app.use("/api/ai", aiRoutes);
+
+// User-Routen
+app.use("/api/users", userRoutes);
+
+// Upload-Routen
+app.use("/api/upload", uploadRoutes);
 
 app.get("/", (req, res) => {
   res.send("API live");
@@ -47,6 +56,9 @@ mongoose
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`ScooTeq Helpdesk Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      
+      // Start cleanup job for inactive users (every 5 minutes)
+      setInterval(markInactiveUsersOffline, 5 * 60 * 1000);
     });
   })
   .catch((err) => {
