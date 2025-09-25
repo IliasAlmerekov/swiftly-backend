@@ -18,11 +18,62 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6,
   },
+  company: {
+    type: String,
+    default: null,
+  },
+  department: {
+    type: String,
+    default: null,
+  },
+  position: {
+    type: String,
+    default: null,
+  },
+  manager: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  country: {
+    type: String,
+    default: null,
+  },
+  city: {
+    type: String,
+    default: null,
+  },
+  address: {
+    type: String,
+    default: null,
+  },
+  postalCode: {
+    type: Number,
+    default: null,
+  },
   role: {
     type: String,
     enum: ["user", "admin"],
     default: "user",
   },
+  isOnline: {
+    type: Boolean,
+    default: false,
+  },
+  lastSeen: {
+    type: Date,
+    default: Date.now,
+  },
+  avatar: {
+    public_id: {
+      type: String,
+      default: null,
+    },
+    url: {
+      type: String,
+      default: null,
+    }
+  }
 });
 
 userSchema.pre("save", async function (next) {

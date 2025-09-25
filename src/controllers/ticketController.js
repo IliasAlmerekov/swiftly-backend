@@ -7,8 +7,9 @@ export const getAllTickets = async (req, res) => {
     }
     // Finde alle Tickets und fülle das owner-Feld mit User-Daten
     const tickets = await Ticket.find()
-      .populate("owner", "email name role")
-      .populate("comments.author", "email name role");
+      .populate("owner", "email name role avatar")
+      .populate("assignedTo", "email name role avatar")
+      .populate("comments.author", "email name role avatar");
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({
@@ -18,13 +19,34 @@ export const getAllTickets = async (req, res) => {
   }
 };
 
+export const getTicketsToday = async (req, res) => {
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const ticketsToday = await Ticket.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    res.status(200).json({ ticketsToday });
+  } catch (error) {
+    res.status(500).json({
+      message: "Tickets today could not be retrieved",
+      error: error.message,
+    });
+  }
+}
+
 // Controller zum Abrufen aller Tickets des angemeldeten Benutzers
 export const getUserTickets = async (req, res) => {
   try {
     // Finde alle Tickets des angemeldeten Benutzers
     const tickets = await Ticket.find({ owner: req.user._id })
-      .populate("owner", "email name role")
-      .populate("comments.author", "email name role"); // Füge Benutzerinformationen hinzu
+      .populate("owner", "email name role avatar")
+      .populate("assignedTo", "email name role avatar")
+      .populate("comments.author", "email name role avatar"); // Füge Benutzerinformationen hinzu
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({
@@ -64,8 +86,8 @@ export const addComment = async (req, res) => {
 
     // Fetch the updated ticket with populated comments
     const updatedTicket = await Ticket.findById(ticketId)
-      .populate("owner", "name email")
-      .populate("comments.author", "name email");
+      .populate("owner", "name email avatar")
+      .populate("comments.author", "name email avatar");
 
     res.status(201).json(updatedTicket);
   } catch (error) {
@@ -82,9 +104,9 @@ export const getTicketById = async (req, res) => {
     const { ticketId } = req.params;
 
     const ticket = await Ticket.findById(ticketId)
-      .populate("owner", "name email")
-      .populate("assignedTo", "name email role")
-      .populate("comments.author", "name email");
+      .populate("owner", "name email avatar")
+      .populate("assignedTo", "name email role avatar")
+      .populate("comments.author", "name email avatar");
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
@@ -115,6 +137,7 @@ export const createTicket = async (req, res) => {
       priority,
       owner: req.user._id, // User-Referenz
       status: "open",
+      avatar: req.user.avatar // Avatar des Ticket-Erstellers
     });
 
     // Sende das erstellte Ticket als Antwort zurück
@@ -191,3 +214,115 @@ export const updateTicket = async (req, res) => {
     });
   }
 };
+
+// Controller for getting ticket statistics by month
+export const getTicketStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed (0 = January, 11 = December)
+    
+    const stats = [];
+    
+    // Loop through each month from January to the current month
+    for (let month = 0; month <= currentMonth; month++) {
+      const startDate = new Date(currentYear, month, 1); // First day of the month
+      const endDate = new Date(currentYear, month + 1, 0, 23, 59, 59, 999); // Last day of the month
+
+      const count = await Ticket.countDocuments({
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      });
+      
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      
+      stats.push({
+        month: monthNames[month],
+        monthNumber: month + 1,
+        count: count,
+        year: currentYear
+      });
+    }
+    
+    res.status(200).json({
+      stats,
+      currentMonth: currentMonth + 1,
+      currentYear: currentYear
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to retrieve ticket statistics",
+      error: error.message,
+    });
+  }
+};
+
+export const getUserTicketStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed (0 = January, 11 = December)
+    
+    const stats = [];
+    
+    // Calculate the start month (6 months ago)
+    let startMonth = currentMonth - 5; // 6 months including current month
+    let yearOffset = 0;
+    
+    if (startMonth < 0) {
+      yearOffset = -1;
+      startMonth = 12 + startMonth; // Convert negative to positive month in previous year
+    }
+    
+    // Loop through the last 6 months
+    for (let i = 0; i < 6; i++) {
+      let month = startMonth + i;
+      let year = currentYear + yearOffset;
+      
+      // Handle year transition
+      if (month >= 12) {
+        month = month - 12;
+        year = currentYear;
+      }
+      
+      const startDate = new Date(year, month, 1); // First day of the month
+      const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999); // Last day of the month
+
+      const count = await Ticket.countDocuments({
+        owner: req.user._id, // Filter by current user
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      });
+      
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      
+      stats.push({
+        month: monthNames[month],
+        monthNumber: month + 1,
+        count: count,
+        year: year
+      });
+    }
+    
+    res.status(200).json({
+      stats,
+      period: 'Last 6 months',
+      userId: req.user._id
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to retrieve user ticket statistics",
+      error: error.message,
+    });
+  }
+}
