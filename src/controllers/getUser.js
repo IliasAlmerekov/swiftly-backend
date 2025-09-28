@@ -96,12 +96,6 @@ export const updateUserProfile = async (req, res) => {
 // Get user profile by ID (admin only)
 export const getUserById = async (req, res) => {
   try {
-    // Check if the requesting user is an admin
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: "Access denied. Admin privileges required." 
-      });
-    }
 
     const { userId } = req.params;
     
