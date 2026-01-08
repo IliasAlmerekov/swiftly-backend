@@ -93,7 +93,7 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
-// Get user profile by ID (admin only)
+// Get user profile by ID
 export const getUserById = async (req, res) => {
   try {
 
