@@ -98,9 +98,12 @@ const SENSITIVE_KEYWORDS = [
 ];
 const LICENSE_KEYWORDS = ['lizenz','lizensen','license','produktschlüssel','serial','aktivierung','freischaltung'];
 const DATA_PROTECTION_KEYWORDS = [
-  'kunden','kunde','client','personal','personenbezogen','pii','name','adresse','email','e-mail','telefon','phone',
-  'geburtsdatum','bank','iban','konto','password','passwort','token','apikey','api key','secret','credential',
-  'vertrag','rechnung','invoice','gehalt','salary','sozialversicherungs'
+  'kunden','kunde','client','personal','personenbezogen','pii','name','adresse','anschrift','telefon','phone',
+  'geburtsdatum','bank','iban','konto','vertrag','rechnung','invoice','gehalt','salary','sozialversicherungs'
+];
+const DATA_PROTECTION_PATTERNS = [
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+  /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/i
 ];
 
 // Ticket-Indikatoren
@@ -123,6 +126,13 @@ const dedupeById = (arr) => {
   const map = new Map();
   for (const s of arr) map.set(s._id.toString(), s);
   return [...map.values()];
+};
+const containsSensitiveData = (text) => {
+  const lower = normalize(text);
+  return (
+    DATA_PROTECTION_KEYWORDS.some((k) => lower.includes(k)) ||
+    DATA_PROTECTION_PATTERNS.some((p) => p.test(text))
+  );
 };
 
 // function to get a random response based on language
@@ -384,7 +394,7 @@ class AIService {
       const lower = normalize(userMessage);
       const needsImmediateEscalation = SENSITIVE_KEYWORDS.some((k) => lower.includes(k));
       const isLicenseRequest = LICENSE_KEYWORDS.some((k) => lower.includes(k));
-      const touchesProtectedData = DATA_PROTECTION_KEYWORDS.some((k) => lower.includes(k));
+      const touchesProtectedData = containsSensitiveData(userMessage);
       const isGreeting = matchAny(userMessage, GREETING_PATTERNS);
       const isFunctionQuestion = matchAny(userMessage, FUNCTION_PATTERNS);
 
@@ -487,9 +497,13 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
       // 3b) Datenschutz / Datenqualität: Antwort blockieren, falls sensibel
       const responseLower = normalize(aiResponse);
       const responseContainsSensitive =
-        DATA_PROTECTION_KEYWORDS.some((k) => responseLower.includes(k)) ||
-        LICENSE_KEYWORDS.some((k) => responseLower.includes(k));
-      if (responseContainsSensitive && !isGreeting && !isFunctionQuestion) {
+        containsSensitiveData(aiResponse) || LICENSE_KEYWORDS.some((k) => responseLower.includes(k));
+      const shouldBlockSensitiveResponse =
+        responseContainsSensitive &&
+        !isGreeting &&
+        !isFunctionQuestion &&
+        (touchesProtectedData || isLicenseRequest || needsImmediateEscalation);
+      if (shouldBlockSensitiveResponse) {
         const lang = this.detectLang(userMessage);
         const msg = {
           de: 'Entschuldigung, dabei kann ich nicht helfen. Bitte füllen Sie das Helpdesk-Formular aus; der 1st Level Support übernimmt die weitere Bearbeitung.',
