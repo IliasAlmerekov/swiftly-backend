@@ -26,13 +26,9 @@ export const register = async (req, res) => {
         received: { email: !!email, password: !!password, name: !!name, role: !!role }
       });
     }
-
-    console.log("Creating user with:", { email, name, role: role || 'user' });
     
     // name wird jetzt auch gespeichert
     const newUser = await User.create({ email, password, role, name });
-
-    console.log("User created successfully:", newUser._id);
 
     // name wird dem Token hinzugefügt
     const token = signToken(

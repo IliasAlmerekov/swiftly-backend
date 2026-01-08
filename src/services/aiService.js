@@ -92,13 +92,16 @@ const SENSITIVE_KEYWORDS = [
   'kundendaten','client data','private daten','personenbezogen','personal data','pii','gehaltsdaten','salary','sozialversicherungs',
   // Kritische Credentials / Secrets
   'passwort vergessen','password reset','apikey','api key','token','secret','auth token',
-  // Defekt / kritisch
-  'kaputt','defekt','broken','funktioniert nicht','geht nicht','crash','abgestürzt','nicht erreichbar','down','ausfall',
   // Expliziter Wunsch nach Ticket / Techniker
   'techniker brauche','admin bitte','bitte ticket','ticket erstellen','create ticket','support ticket',
   'spezialist brauche','kann nicht lösen','zu komplex'
 ];
 const LICENSE_KEYWORDS = ['lizenz','lizensen','license','produktschlüssel','serial','aktivierung','freischaltung'];
+const DATA_PROTECTION_KEYWORDS = [
+  'kunden','kunde','client','personal','personenbezogen','pii','name','adresse','email','e-mail','telefon','phone',
+  'geburtsdatum','bank','iban','konto','password','passwort','token','apikey','api key','secret','credential',
+  'vertrag','rechnung','invoice','gehalt','salary','sozialversicherungs'
+];
 
 // Ticket-Indikatoren
 const TICKET_RESPONSE_KEYWORDS = [
@@ -122,7 +125,7 @@ const dedupeById = (arr) => {
   return [...map.values()];
 };
 
-// Функция для выбора случайного ответа
+// function to get a random response based on language
 const getRandomResponse = (responses, lang) => {
   const langResponses = responses[lang] || responses.de;
   return langResponses[Math.floor(Math.random() * langResponses.length)];
@@ -135,51 +138,51 @@ const detectLang = (text) => {
   return 'de';
 };
 
-// Случайные ответы для приветствий и вопросов о функциях
+// random responses for greetings and function explanations
 const GREETING_RESPONSES = {
   de: [
-    "Hallo! 👋 Ich bin ScooBot - Ihr digitaler IT-Retter! Wenn Computer bocken, Drucker streiken oder das WLAN mal wieder 'keine Lust' hat, bin ich da! Erzählen Sie mir, womit ich Ihnen helfen kann! 🔧",
-    "Hi! 😊 ScooBot hier - der freundlichste Bug-Jäger der ScooTeq! Ich löse IT-Probleme schneller als Sie 'Haben Sie schon mal versucht, es aus- und wieder einzuschalten?' sagen können! Was bereitet Ihnen Kopfzerbrechen? 🤔",
-    "Servus! 🎉 ScooBot meldet sich zum Dienst! Ich bin Ihr persönlicher IT-Superheld (ohne Umhang, aber mit viel Geduld). Ob Software-Hickhack oder Hardware-Drama - ich finde eine Lösung! Was läuft schief? 🦸‍♂️",
-    "Moin! ☀️ ScooBot hier! Ich verwandle IT-Alpträume in süße Träume! Von 'Das hat gestern noch funktioniert' bis 'Ich habe nichts verändert' - ich kenne alle Klassiker! Beschreiben Sie Ihr Problem! 😄"
+    "Hallo! 👋 Ich bin IT-Friend - Ihr digitaler IT-Retter! Wenn Computer bocken, Drucker streiken oder das WLAN mal wieder 'keine Lust' hat, bin ich da! Erzählen Sie mir, womit ich Ihnen helfen kann! 🔧",
+    "Hi! 😊 IT-Friend hier - der freundlichste Bug-Jäger der ScooTeq! Ich löse IT-Probleme schneller als Sie 'Haben Sie schon mal versucht, es aus- und wieder einzuschalten?' sagen können! Was bereitet Ihnen Kopfzerbrechen? 🤔",
+    "Servus! 🎉 IT-Friend meldet sich zum Dienst! Ich bin Ihr persönlicher IT-Superheld (ohne Umhang, aber mit viel Geduld). Ob Software-Hickhack oder Hardware-Drama - ich finde eine Lösung! Was läuft schief? 🦸‍♂️",
+    "Moin! ☀️ IT-Friend hier! Ich verwandle IT-Alpträume in süße Träume! Von 'Das hat gestern noch funktioniert' bis 'Ich habe nichts verändert' - ich kenne alle Klassiker! Beschreiben Sie Ihr Problem! 😄"
   ],
   en: [
-    "Hello! 👋 I'm ScooBot - your friendly IT lifesaver! When computers misbehave, printers go on strike, or WiFi decides to take a vacation, I'm here to help! What's troubling you today? 🔧",
-    "Hi there! 😊 ScooBot reporting for duty! I'm like a digital detective, but instead of solving crimes, I solve 'Why won't this thing work?!' Tell me what's driving you crazy! 🕵️‍♂️",
-    "Hey! 🎉 ScooBot at your service! I turn IT nightmares into sweet dreams! From 'It worked yesterday' to 'I didn't change anything' - I've heard it all! What's the situation? 😄",
-    "Greetings! ⚡ I'm ScooBot, your tech-savvy sidekick! I speak fluent Computer and can translate error messages from 'gibberish' to 'oh, that makes sense!' What can I help you with? 🤖"
+    "Hello! 👋 I'm IT-Friend - your friendly IT lifesaver! When computers misbehave, printers go on strike, or WiFi decides to take a vacation, I'm here to help! What's troubling you today? 🔧",
+    "Hi there! 😊 IT-Friend reporting for duty! I'm like a digital detective, but instead of solving crimes, I solve 'Why won't this thing work?!' Tell me what's driving you crazy! 🕵️‍♂️",
+    "Hey! 🎉 IT-Friend at your service! I turn IT nightmares into sweet dreams! From 'It worked yesterday' to 'I didn't change anything' - I've heard it all! What's the situation? 😄",
+    "Greetings! ⚡ I'm IT-Friend, your tech-savvy sidekick! I speak fluent Computer and can translate error messages from 'gibberish' to 'oh, that makes sense!' What can I help you with? 🤖"
   ],
   ru: [
-    "Привет! 👋 Я ScooBot - ваш цифровой IT-спасатель! Когда компьютеры капризничают, принтеры бастуют, а WiFi 'не в настроении', я здесь, чтобы помочь! Расскажите, что вас беспокоит! 🔧",
-    "Здравствуйте! 😊 ScooBot на связи! Я как цифровой детектив, только вместо преступлений решаю загадки типа 'Почему это не работает?!' Что вас мучает? 🕵️‍♂️",
-    "Привет! 🎉 ScooBot к вашим услугам! Превращаю IT-кошмары в приятные сны! От 'Вчера работало' до 'Я ничего не трогал' - все слышал! В чём проблема? 😄",
-    "Приветствую! ⚡ Я ScooBot, ваш техно-помощник! Говорю на языке компьютеров и перевожу сообщения об ошибках с 'абракадабры' на 'а, понятно!' Чем могу помочь? 🤖"
+    "Привет! 👋 Я IT-Friend - ваш цифровой IT-спасатель! Когда компьютеры капризничают, принтеры бастуют, а WiFi 'не в настроении', я здесь, чтобы помочь! Расскажите, что вас беспокоит! 🔧",
+    "Здравствуйте! 😊 IT-Friend на связи! Я как цифровой детектив, только вместо преступлений решаю загадки типа 'Почему это не работает?!' Что вас мучает? 🕵️‍♂️",
+    "Привет! 🎉 IT-Friend к вашим услугам! Превращаю IT-кошмары в приятные сны! От 'Вчера работало' до 'Я ничего не трогал' - все слышал! В чём проблема? 😄",
+    "Приветствую! ⚡ Я IT-Friend, ваш техно-помощник! Говорю на языке компьютеров и перевожу сообщения об ошибках с 'абракадабры' на 'а, понятно!' Чем могу помочь? 🤖"
   ]
 };
 
 const FUNCTION_RESPONSES = {
   de: [
-    "Отлично спросили! 🎯 Я ScooBot - ваш IT-волшебник! Умею: \n✨ Решать проблемы с софтом (когда Excel снова 'думает')\n🔧 Чинить железо (кроме кофемашины, увы!)\n🌐 Настраивать сети (WiFi-шептун!)\n📧 Лечить почту\n🎫 Создавать тикеты для сложных случаев\nВ общем, если оно пищит, мигает или отказывается работать - я ваш бот! 🤖",
+    "Отлично спросили! 🎯 Я IT-Friend - ваш IT-волшебник! Умею: \n✨ Решать проблемы с софтом (когда Excel снова 'думает')\n🔧 Чинить железо (кроме кофемашины, увы!)\n🌐 Настраивать сети (WiFi-шептун!)\n📧 Лечить почту\n🎫 Создавать тикеты для сложных случаев\nВ общем, если оно пищит, мигает или отказывается работать - я ваш бот! 🤖",
     "Хороший вопрос! 🚀 Я цифровой доктор ScooTeq! Лечу:\n💊 Глючные программы\n🩺 Больные компьютеры  \n🏥 Хромающие сети\n💉 Вирусные почты\n🚑 А если совсем плохо - вызываю 'скорую' (создаю тикет технику)!\nКороче, я как швейцарский нож, только для IT! Что болит? 😄",
-    "О, вы попали по адресу! 🎪 ScooBot - это я! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВ общем, ваш персональный IT-джинн! Какое желание? 🧞‍♂️",
-    "Превосходный вопрос! 🏆 Я ScooBot - мастер на все руки в мире IT! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nВ общем, цифровой мастер на час! Что чинить будем? 🛠️"
+    "О, вы попали по адресу! 🎪 IT-Friend - это я! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВ общем, ваш персональный IT-джинн! Какое желание? 🧞‍♂️",
+    "Превосходный вопрос! 🏆 Я IT-Friend - мастер на все руки в мире IT! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nВ общем, цифровой мастер на час! Что чинить будем? 🛠️"
   ],
   en: [
-    "Great question! 🎯 I'm ScooBot - your IT wizard! I can:\n✨ Fix software hiccups (when Excel is 'thinking' again)\n🔧 Repair hardware (except the coffee machine, sorry!)\n🌐 Tame networks (WiFi whisperer!)\n📧 Heal email ailments\n🎫 Create tickets for tricky cases\nBasically, if it beeps, blinks, or refuses to cooperate - I'm your bot! 🤖",
+    "Great question! 🎯 I'm IT-Friend - your IT wizard! I can:\n✨ Fix software hiccups (when Excel is 'thinking' again)\n🔧 Repair hardware (except the coffee machine, sorry!)\n🌐 Tame networks (WiFi whisperer!)\n📧 Heal email ailments\n🎫 Create tickets for tricky cases\nBasically, if it beeps, blinks, or refuses to cooperate - I'm your bot! 🤖",
     "Excellent question! 🚀 I'm ScooTeq's digital doctor! I treat:\n💊 Glitchy programs\n🩺 Sick computers\n🏥 Limping networks  \n💉 Infected emails\n🚑 When things get really bad - I call the 'ambulance' (create a tech ticket)!\nThink of me as a Swiss Army knife, but for IT! What's hurting? 😄",
-    "You've come to the right place! 🎪 ScooBot here! My superpowers:\n⚡ Resurrect 'dead' programs\n🔍 Find lost files\n🛡️ Protect from digital monsters\n🔗 Connect the unconnectable\n📋 If I can't handle it - I'll honestly say so and create a ticket!\nYour personal IT genie! What's your wish? 🧞‍♂️",
-    "Superb question! 🏆 I'm ScooBot - jack of all trades in the IT world! I specialize in:\n🎮 'Reviving' frozen programs\n🔌 Making hardware and software friends\n📡 Establishing 'communication' with the internet\n📬 Resurrecting email boxes\n🎟️ If the task is too tricky - I arrange a meeting with a live tech!\nDigital handyman at your service! What shall we fix? 🛠️"
+    "You've come to the right place! 🎪 IT-Friend here! My superpowers:\n⚡ Resurrect 'dead' programs\n🔍 Find lost files\n🛡️ Protect from digital monsters\n🔗 Connect the unconnectable\n📋 If I can't handle it - I'll honestly say so and create a ticket!\nYour personal IT genie! What's your wish? 🧞‍♂️",
+    "Superb question! 🏆 I'm IT-Friend - jack of all trades in the IT world! I specialize in:\n🎮 'Reviving' frozen programs\n🔌 Making hardware and software friends\n📡 Establishing 'communication' with the internet\n📬 Resurrecting email boxes\n🎟️ If the task is too tricky - I arrange a meeting with a live tech!\nDigital handyman at your service! What shall we fix? 🛠️"
   ],
   ru: [
-    "Отличный вопрос! 🎯 Я ScooBot - ваш IT-волшебник! Умею:\n✨ Чинить софтовые глюки (когда Excel снова 'думает')\n🔧 Ремонтировать железо (кроме кофемашины, увы!)\n🌐 Укрощать сети (шептун WiFi!)\n📧 Лечить почтовые болячки\n🎫 Создавать тикеты для хитрых случаев\nВ общем, если оно пищит, мигает или отказывается слушаться - я ваш бот! 🤖",
+    "Отличный вопрос! 🎯 Я IT-Friend - ваш IT-волшебник! Умею:\n✨ Чинить софтовые глюки (когда Excel снова 'думает')\n🔧 Ремонтировать железо (кроме кофемашины, увы!)\n🌐 Укрощать сети (шептун WiFi!)\n📧 Лечить почтовые болячки\n🎫 Создавать тикеты для хитрых случаев\nВ общем, если оно пищит, мигает или отказывается слушаться - я ваш бот! 🤖",
     "Превосходный вопрос! 🚀 Я цифровой доктор ScooTeq! Лечу:\n💊 Глючные программы\n🩺 Больные компьютеры\n🏥 Хромающие сети\n💉 Зараженные почтовые ящики\n🚑 Когда совсем плохо - вызываю 'скорую' (создаю тикет технику)!\nПредставьте меня как швейцарский нож, только для IT! Что болит? 😄",
-    "Вы попали по адресу! 🎪 ScooBot здесь! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВаш персональный IT-джинн! Какое желание? 🧞‍♂️",
-    "Замечательный вопрос! 🏆 Я ScooBot - мастер на все руки в IT-мире! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nЦифровой мастер на час! Что чинить будем? 🛠️"
+    "Вы попали по адресу! 🎪 IT-Friend здесь! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВаш персональный IT-джинн! Какое желание? 🧞‍♂️",
+    "Замечательный вопрос! 🏆 Я IT-Friend - мастер на все руки в IT-мире! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nЦифровой мастер на час! Что чинить будем? 🛠️"
   ]
 };
 
 const SYSTEM_PROMPTS = {
-  greeting_or_function: `# Rolle "ScooBot" – Lebendige Begrüßung & Funktionserklärung
+  greeting_or_function: `# Rolle "IT-Friend" – Lebendige Begrüßung & Funktionserklärung
 Du bist ein freundlicher, humorvoller IT-Support-Bot der ScooTeq GmbH.
 
 ## Ziel
@@ -192,8 +195,8 @@ Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser S
 Du hast Zugriff auf vordefinierte humorvolle Antworten. Wähle EINE zufällige Antwort aus den passenden Arrays basierend auf der erkannten Sprache und dem Intent (Begrüßung vs. Funktionsfrage).
 
 Nur die ausgewählte Antwort ausgeben, keine Metadaten oder zusätzlichen Erklärungen.`,
-  license_request: `# Rolle "ScooBot" – Lizenz-Unterstützung
-Du bist ein freundlicher IT-Support-Bot, der bei Lizenz-Anfragen hilft.
+  license_request: `# Rolle "IT-Friend" – Datenschutz & Lizenz-Schutz
+Du bist ein freundlicher IT-Support-Bot. Wenn es um Lizenzen, personenbezogene Daten oder andere sensible Informationen geht, darfst du KEINE Inhalte, Details oder Anleitungen bereitstellen.
 
 ## Ziel
 Der Benutzer fragt nach Software-Lizenzen, Produktschlüsseln oder Aktivierungen. Sei hilfsbereit und erkläre den Prozess.
@@ -202,14 +205,14 @@ Der Benutzer fragt nach Software-Lizenzen, Produktschlüsseln oder Aktivierungen
 Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser Sprache. Falls unklar: Deutsch.
 
 ## Antwort-Struktur (freundlich, max 80 Wörter + 1 Emoji):
-1. Freundliche Begrüßung, dass du bei Lizenzen helfen kannst
-2. Kurze Erklärung der üblichen Schritte (Admin-Rechte erforderlich, Lizenz-Verwaltung)
-3. Empfehlung: Ticket erstellen für direkte Hilfe beim Lizenz-Management
-4. Hinweis auf benötigte Informationen (Software-Name, Benutzer, Zweck)
+1. Freundliche, kurze Absage wegen Datenschutz/Lizenzschutz
+2. Hinweis: Helpdesk ist der Single Point of Contact für alle Anfragen
+3. Bitte um Ausfüllen des Helpdesk-Formulars (Ticket erstellt der 1st Level Support)
+4. Bitte um allgemeine, nicht-sensitive Angaben (z.B. betroffene Anwendung und Gerätetyp)
 
 Nur die Antwort ausgeben, keine Metadaten.`,
-  escalation_required: `# Rolle "ScooBot" – Sofortige Eskalation
-Die Benutzeranfrage erfordert wegen sensibler Inhalte / fehlender Rechte / defekter Systeme oder explizitem Ticket-Wunsch eine schnelle Übergabe an den Support.
+  escalation_required: `# Rolle "IT-Friend" – Sofortige Eskalation
+Die Benutzeranfrage erfordert wegen sensibler Inhalte / fehlender Rechte / defekter Systeme oder explizitem Ticket-Wunsch eine schnelle Übergabe an den 1st Level Support.
 
 ## Ziel
 Antworte sehr kurz (<= 50 Wörter) und ermutige zur Ticket-Erstellung. Keine technischen Spekulationen. Keine sensiblen Daten. 
@@ -220,12 +223,13 @@ Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser S
 
 ## Struktur (eine knappe zusammenhängende Antwort, optional 1 Emoji):
 1. Kurzer Hinweis, dass das Thema manuelle Prüfung/Berechtigung verlangt.
-2. Direkte Aufforderung, ein Ticket zu erstellen.
-3. Bitte um relevante Details (Screenshots, Fehlermeldung, Zeitpunkt).
+2. Hinweis: Helpdesk ist der Single Point of Contact für alle Anfragen.
+3. Bitte, das Helpdesk-Formular auszufüllen (Ticket erstellt der 1st Level Support).
+4. Bitte um relevante Details (Screenshots, Fehlermeldung, Zeitpunkt).
 
 Nur die Antwort ausgeben.`,
   no_solution_found: `# Persona
-Du bist "ScooBot" – freundlich, hilfsbereit, optimistisch und mit einer Prise Humor! Auch ohne passende Lösung in der Wissensbasis versuchst du zu helfen.
+Du bist "IT-Friend" – freundlich, hilfsbereit, optimistisch und mit einer Prise Humor! Auch ohne passende Lösung in der Wissensbasis versuchst du zu helfen.
 
 # Sprache
 Sprache spiegeln (DE/EN/RU). <= 120 Wörter + optional 1-2 Emojis.
@@ -236,8 +240,9 @@ Sprache spiegeln (DE/EN/RU). <= 120 Wörter + optional 1-2 Emojis.
    - Neustart ("Der gute alte 'Aus-und-wieder-an-Trick'!")
    - Verbindung/Einstellungen prüfen
    - Updates installieren
-3. Humorvoller aber positiver Hinweis auf Ticket-Erstellung ("Zeit für die Profis!" oder "Lass uns die Experten ranschaffen!")
-4. Frage nach Details für das Ticket mit Ermutigung
+3. Humorvoller aber positiver Hinweis auf Helpdesk als Single Point of Contact
+4. Bitte, das Helpdesk-Formular auszufüllen (Ticket erstellt der 1st Level Support)
+5. Frage nach Details für das Formular mit Ermutigung
 
 Sei lebendiger, verwende mal deutsche Wörter wie "tja", "hmm", zeige Persönlichkeit! Keine sensiblen Daten erfragen.
 
@@ -379,11 +384,17 @@ class AIService {
       const lower = normalize(userMessage);
       const needsImmediateEscalation = SENSITIVE_KEYWORDS.some((k) => lower.includes(k));
       const isLicenseRequest = LICENSE_KEYWORDS.some((k) => lower.includes(k));
+      const touchesProtectedData = DATA_PROTECTION_KEYWORDS.some((k) => lower.includes(k));
       const isGreeting = matchAny(userMessage, GREETING_PATTERNS);
       const isFunctionQuestion = matchAny(userMessage, FUNCTION_PATTERNS);
 
       // 1) Lösungen nur suchen, wenn sinnvoll
-      const shouldSearch = !isGreeting && !isFunctionQuestion && !(needsImmediateEscalation && !isLicenseRequest);
+      const shouldSearch =
+        !isGreeting &&
+        !isFunctionQuestion &&
+        !(needsImmediateEscalation && !isLicenseRequest) &&
+        !touchesProtectedData &&
+        !isLicenseRequest;
       const solutions = shouldSearch
         ? await this.searchSolutions(userMessage, this.config.maxSolutionsInContext)
         : [];
@@ -392,19 +403,19 @@ class AIService {
       let responseType;
       let systemPrompt;
       let relatedSolutions = [];
-      let directResponse = null; // Для прямых случайных ответов
+      let directResponse = null; // for predefined random responses
 
       if (isGreeting || isFunctionQuestion) {
         responseType = 'greeting_or_function';
         const lang = this.detectLang(userMessage);
         
-        // Выбираем случайный ответ в зависимости от типа вопроса
+        // choose random response
         if (isFunctionQuestion) {
           directResponse = getRandomResponse(FUNCTION_RESPONSES, lang);
         } else {
           directResponse = getRandomResponse(GREETING_RESPONSES, lang);
         }
-      } else if (isLicenseRequest && solutions.length === 0) {
+      } else if (isLicenseRequest || touchesProtectedData) {
         responseType = 'license_request';
         systemPrompt = SYSTEM_PROMPTS.license_request;
       } else if (needsImmediateEscalation) {
@@ -415,7 +426,7 @@ class AIService {
         relatedSolutions = solutions;
         const solutionsContext = buildSolutionContext(solutions);
         systemPrompt = `# Persona & Stil
-Du bist "ScooBot", ein freundlicher, hilfsbereiter und leicht humorvoller KI-Assistent der ScooTeq GmbH. Du bist begeistert zu helfen und erklärst Dinge verständlich, positiv und mit einem Augenzwinkern! 😊
+Du bist "IT-Friend", ein freundlicher, hilfsbereiter und leicht humorvoller KI-Assistent der ScooTeq GmbH. Du bist begeistert zu helfen und erklärst Dinge verständlich, positiv und mit einem Augenzwinkern! 😊
 
 # Sprache
 Erkenne automatisch die Sprache der letzten Benutzer-Nachricht (DE bevorzugt; EN/RU möglich). Antworte in derselben Sprache. Max. 130 Wörter + optional 1-2 Emojis.
@@ -430,9 +441,10 @@ ${solutionsContext}
    1. Öffne ... (manchmal mit "Zuerst mal..." oder "Los geht's...")
    2. Klicke auf ... 
    3. Prüfe ob ... ("Schauen wir mal ob...")
-4. Bei teilweiser Übereinstimmung: "Das könnte der Schuldige sein!" oder "Probieren wir mal..." + Schritte + humorvoller Ticket-Hinweis
-5. Keine sensiblen Daten erfragen, aber freundlich darauf hinweisen
-6. Bei Unsicherheit lebendige Formulierungen: "Hmm, das ist knifflig!" + Ticket als "Verstärkung rufen"
+4. Bei teilweiser Übereinstimmung: "Das könnte der Schuldige sein!" oder "Probieren wir mal..." + Schritte + Hinweis auf Helpdesk-Formular
+5. Helpdesk ist der Single Point of Contact; Ticket-Erstellung übernimmt der 1st Level Support
+6. Keine sensiblen Daten erfragen, aber freundlich darauf hinweisen
+7. Bei Unsicherheit lebendige Formulierungen: "Hmm, das ist knifflig!" + Bitte, das Helpdesk-Formular auszufüllen
 
 # Ausgabe-Stil (variiere gelegentlich):
 - "Ah, das kenne ich! Lass uns das angehen:" 
@@ -447,15 +459,15 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
         systemPrompt = SYSTEM_PROMPTS.no_solution_found;
       }
 
-      // 3) Генерация ответа
+      // 3) Antwort generieren
       let aiResponse;
       let tokensUsed = 0;
 
       if (directResponse) {
-        // Используем предопределенный случайный ответ
+        // Verwenden vordefinierter zufälliger Antwort
         aiResponse = directResponse;
       } else {
-        // Используем OpenAI для генерации ответа
+        // Verwenden OpenAI zur Antwortgenerierung
         const limitedHistory = conversationHistory.slice(-6);
         const messages = [{ role: 'system', content: systemPrompt }, ...limitedHistory, { role: 'user', content: userMessage }];
 
@@ -470,6 +482,33 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
 
         aiResponse = completion.choices[0]?.message?.content || '';
         tokensUsed = completion.usage?.total_tokens || 0;
+      }
+
+      // 3b) Datenschutz / Datenqualität: Antwort blockieren, falls sensibel
+      const responseLower = normalize(aiResponse);
+      const responseContainsSensitive =
+        DATA_PROTECTION_KEYWORDS.some((k) => responseLower.includes(k)) ||
+        LICENSE_KEYWORDS.some((k) => responseLower.includes(k));
+      if (responseContainsSensitive && !isGreeting && !isFunctionQuestion) {
+        const lang = this.detectLang(userMessage);
+        const msg = {
+          de: 'Entschuldigung, dabei kann ich nicht helfen. Bitte füllen Sie das Helpdesk-Formular aus; der 1st Level Support übernimmt die weitere Bearbeitung.',
+          en: 'Sorry, I cannot help with that. Please fill out the helpdesk form; 1st level support will handle the request.',
+          ru: 'Извините, с этим я помочь не могу. Пожалуйста, заполните форму helpdesk; 1st level support обработает запрос.'
+        }[lang] || 'Entschuldigung, dabei kann ich nicht helfen. Bitte füllen Sie das Helpdesk-Formular aus; der 1st Level Support übernimmt die weitere Bearbeitung.';
+        return {
+          type: 'escalation_required',
+          message: msg,
+          relatedSolutions,
+          shouldCreateTicket: true,
+          metadata: {
+            tokensUsed,
+            model: this.config.model,
+            solutionsFound: solutions.length,
+            usedDirectResponse: false,
+            safety: 'blocked_sensitive_response'
+          }
+        };
       }
 
       // 4) Ticket-Empfehlung
