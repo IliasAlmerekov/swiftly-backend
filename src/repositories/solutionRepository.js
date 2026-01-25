@@ -31,7 +31,11 @@ class SolutionRepository {
   }
 
   deactivateById(id) {
-    return this.Solution.findByIdAndUpdate(id, { isActive: false }, { new: true });
+    return this.Solution.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true }
+    );
   }
 
   search(query, limit) {

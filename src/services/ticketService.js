@@ -20,7 +20,10 @@ class TicketService {
   async getUserTickets(user, query = {}) {
     const { page = 1, limit = 50 } = query;
     const skip = (page - 1) * limit;
-    return this.ticketRepository.findByOwnerPopulated(user._id, { skip, limit });
+    return this.ticketRepository.findByOwnerPopulated(user._id, {
+      skip,
+      limit,
+    });
   }
 
   async getTicketById(ticketId, user) {
@@ -91,12 +94,14 @@ class TicketService {
       throw error;
     }
 
-    const { status, assignedTo, title, description, priority, category } = updateData;
+    const { status, assignedTo, title, description, priority, category } =
+      updateData;
 
     if (isSupport) {
       if (status) ticket.status = status;
       if (assignedTo) {
-        const assignee = await this.userRepository.findSupportUserById(assignedTo);
+        const assignee =
+          await this.userRepository.findSupportUserById(assignedTo);
         if (!assignee) {
           const error = new Error("Assigned user must be support or admin");
           error.status = 400;
@@ -132,7 +137,8 @@ class TicketService {
     if (category) ticket.category = category;
     if (status) ticket.status = status;
     if (assignedTo) {
-      const assignee = await this.userRepository.findSupportUserById(assignedTo);
+      const assignee =
+        await this.userRepository.findSupportUserById(assignedTo);
       if (!assignee) {
         const error = new Error("Assigned user must be support or admin");
         error.status = 400;
@@ -160,14 +166,27 @@ class TicketService {
 
     const stats = [];
     const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
 
     for (let month = 0; month <= currentMonth; month++) {
       const startDate = new Date(currentYear, month, 1);
       const endDate = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
-      const count = await this.ticketRepository.countByDateRange(startDate, endDate);
+      const count = await this.ticketRepository.countByDateRange(
+        startDate,
+        endDate
+      );
       stats.push({
         month: monthNames[month],
         monthNumber: month + 1,
@@ -197,8 +216,18 @@ class TicketService {
     }
 
     const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
 
     for (let i = 0; i < 6; i++) {

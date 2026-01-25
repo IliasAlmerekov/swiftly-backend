@@ -61,9 +61,9 @@ export const getAdmins = asyncHandler(async (req, res) => {
   }
 
   // Finde alle User mit Rolle 'admin'
-  const admins = await User.find({ role: { $in: ["admin", "support1"] } }).select(
-    "name email _id role"
-  );
+  const admins = await User.find({
+    role: { $in: ["admin", "support1"] },
+  }).select("name email _id role");
 
   if (!admins || admins.length === 0) {
     return res.status(200).json([]);

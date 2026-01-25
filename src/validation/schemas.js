@@ -8,7 +8,7 @@ const optionalString = z.string().trim().min(1, "Must not be empty").optional();
 
 const requiredString = z.string().trim().min(1, "Must not be empty");
 
-const postalCode = z.preprocess((value) => {
+const postalCode = z.preprocess(value => {
   if (value === null || value === undefined || value === "") {
     return undefined;
   }
@@ -19,11 +19,13 @@ const postalCode = z.preprocess((value) => {
   return value;
 }, z.number().int().optional());
 
-export const authRegisterDto = z.object({
-  email: requiredString.email(),
-  password: z.string().min(6),
-  name: requiredString,
-}).strict();
+export const authRegisterDto = z
+  .object({
+    email: requiredString.email(),
+    password: z.string().min(6),
+    name: requiredString,
+  })
+  .strict();
 
 export const authLoginDto = z.object({
   email: requiredString.email(),
@@ -49,12 +51,16 @@ export const ticketUpdateDto = z.object({
   title: optionalString,
   description: optionalString,
   priority: z.enum(["low", "medium", "high"]).optional(),
-  category: z.enum(["Hardware", "Software", "Network", "Account", "Email", "Other"]).optional(),
+  category: z
+    .enum(["Hardware", "Software", "Network", "Account", "Email", "Other"])
+    .optional(),
 });
 
 export const ticketTriageDto = z.object({
   priority: z.enum(["low", "medium", "high"]).optional(),
-  category: z.enum(["Hardware", "Software", "Network", "Account", "Email", "Other"]).optional(),
+  category: z
+    .enum(["Hardware", "Software", "Network", "Account", "Email", "Other"])
+    .optional(),
   status: z.enum(["open", "in-progress", "resolved", "closed"]).optional(),
   assignedTo: objectId.optional(),
 });
@@ -89,7 +95,9 @@ export const solutionCreateDto = z.object({
   problem: requiredString,
   solution: requiredString,
   keywords: z.array(z.string().trim()).optional(),
-  category: z.enum(["Hardware", "Software", "Netzwerk", "Account", "Email", "Sonstiges"]).optional(),
+  category: z
+    .enum(["Hardware", "Software", "Netzwerk", "Account", "Email", "Sonstiges"])
+    .optional(),
   priority: z.enum(["Low", "Medium", "High"]).optional(),
 });
 
@@ -98,7 +106,9 @@ export const solutionUpdateDto = z.object({
   problem: optionalString,
   solution: optionalString,
   keywords: z.array(z.string().trim()).optional(),
-  category: z.enum(["Hardware", "Software", "Netzwerk", "Account", "Email", "Sonstiges"]).optional(),
+  category: z
+    .enum(["Hardware", "Software", "Netzwerk", "Account", "Email", "Sonstiges"])
+    .optional(),
   priority: z.enum(["Low", "Medium", "High"]).optional(),
   isActive: z.boolean().optional(),
 });

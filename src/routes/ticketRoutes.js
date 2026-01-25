@@ -11,7 +11,12 @@ const ticketController = createTicketController(container);
 
 // Route zum Abrufen aller Tickets (Admin)
 // GET /api/tickets
-router.get("/", authMiddleware, requireRole(["support1", "admin"]), ticketController.getAllTickets);
+router.get(
+  "/",
+  authMiddleware,
+  requireRole(["support1", "admin"]),
+  ticketController.getAllTickets
+);
 
 // Route zum Abrufen der Tickets des angemeldeten Benutzers
 // GET /api/tickets/user

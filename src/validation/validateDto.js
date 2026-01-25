@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
 
-const normalizeMessage = (issues) => {
+const normalizeMessage = issues => {
   if (!issues || issues.length === 0) return "Validation error";
   return issues[0].message || "Validation error";
 };

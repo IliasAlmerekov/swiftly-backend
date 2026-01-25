@@ -12,8 +12,10 @@ router.use(authMiddleware);
 
 // In-memory conversation store (use Redis in production)
 const conversationStore = new Map();
-const conversationKey = (userId, sessionId) => `ai:conversation:${userId}:${sessionId}`;
-const conversationTtlMs = Number(process.env.AI_CONVERSATION_TTL_MS) || 30 * 60 * 1000;
+const conversationKey = (userId, sessionId) =>
+  `ai:conversation:${userId}:${sessionId}`;
+const conversationTtlMs =
+  Number(process.env.AI_CONVERSATION_TTL_MS) || 30 * 60 * 1000;
 
 const getConversation = async (userId, sessionId) => {
   if (isRedisEnabled) {
@@ -28,7 +30,11 @@ const setConversation = async (userId, sessionId, entry) => {
   if (isRedisEnabled) {
     const client = await getRedisClient();
     const ttlSeconds = Math.max(1, Math.floor(conversationTtlMs / 1000));
-    await client.set(conversationKey(userId, sessionId), JSON.stringify(entry), { EX: ttlSeconds });
+    await client.set(
+      conversationKey(userId, sessionId),
+      JSON.stringify(entry),
+      { EX: ttlSeconds }
+    );
     return;
   }
   conversationStore.set(conversationKey(userId, sessionId), entry);
@@ -66,7 +72,11 @@ router.post("/chat", async (req, res) => {
     const { message, sessionId } = req.body;
 
     // Validation
-    if (!message || typeof message !== "string" || message.trim().length === 0) {
+    if (
+      !message ||
+      typeof message !== "string" ||
+      message.trim().length === 0
+    ) {
       return res.status(400).json({
         success: false,
         message: "Nachricht ist erforderlich",
@@ -83,7 +93,9 @@ router.post("/chat", async (req, res) => {
 
     // Get or create conversation history
     let effectiveSessionId = typeof sessionId === "string" ? sessionId : null;
-    let stored = effectiveSessionId ? await getConversation(userId, effectiveSessionId) : null;
+    let stored = effectiveSessionId
+      ? await getConversation(userId, effectiveSessionId)
+      : null;
     if (!stored) {
       effectiveSessionId = randomUUID();
       stored = null;
@@ -95,7 +107,10 @@ router.post("/chat", async (req, res) => {
     );
 
     // Generate AI response
-    const response = await aiService.generateResponse(message.trim(), conversationHistory);
+    const response = await aiService.generateResponse(
+      message.trim(),
+      conversationHistory
+    );
 
     // Update conversation history
     conversationHistory.push(
@@ -225,7 +240,9 @@ router.delete("/conversation/:sessionId", async (req, res) => {
     }
 
     await deleteConversation(userId, sessionId);
-    console.log(`[AI-Chat] Konversation ${sessionId} geloescht (user=${userId})`);
+    console.log(
+      `[AI-Chat] Konversation ${sessionId} geloescht (user=${userId})`
+    );
 
     res.json({
       success: true,

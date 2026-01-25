@@ -9,11 +9,13 @@ class UserService {
     const inactivityThreshold = 5 * 60 * 1000;
 
     const updatedSupports = await Promise.all(
-      supports.map(async (support) => {
+      supports.map(async support => {
         const lastSeen = new Date(support.lastSeen);
         if (isNaN(lastSeen.getTime())) {
           if (support.isOnline) {
-            await this.userRepository.findByIdAndUpdate(support._id, { isOnline: false });
+            await this.userRepository.findByIdAndUpdate(support._id, {
+              isOnline: false,
+            });
             support.isOnline = false;
           }
           return support;
@@ -21,14 +23,18 @@ class UserService {
 
         const isInactive = now - lastSeen > inactivityThreshold;
         if (support.isOnline && isInactive) {
-          await this.userRepository.findByIdAndUpdate(support._id, { isOnline: false });
+          await this.userRepository.findByIdAndUpdate(support._id, {
+            isOnline: false,
+          });
           support.isOnline = false;
         }
         return support;
       })
     );
 
-    const onlineSupports = updatedSupports.filter((support) => support.isOnline).length;
+    const onlineSupports = updatedSupports.filter(
+      support => support.isOnline
+    ).length;
     const totalSupports = updatedSupports.length;
 
     return {
@@ -64,7 +70,9 @@ class UserService {
       "postalCode",
     ];
     const updates = Object.keys(updateData);
-    const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
+    const isValidOperation = updates.every(update =>
+      allowedUpdates.includes(update)
+    );
 
     if (!isValidOperation) {
       const error = new Error("Invalid fields for update");
