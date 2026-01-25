@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 
 import authRoutes from "../src/routes/authRoutes.js";
 import ticketRoutes from "../src/routes/ticketRoutes.js";
+import { errorHandler } from "../src/middlewares/errorHandler.js";
 
 // Load environment variables for testing
 dotenv.config();
@@ -35,6 +36,8 @@ app.get("/api/health", (req, res) => {
     service: "ScooTeq Helpdesk Backend"
   });
 });
+
+app.use(errorHandler);
 
 // Export the app so tests can use it
 export default app;
