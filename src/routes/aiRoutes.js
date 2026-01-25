@@ -1,263 +1,319 @@
-import express from 'express';
-import aiService from '../services/aiService.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
-import { getAIRequestsStats } from '../controllers/aiController.js';
+import express from "express";
+import { randomUUID } from "crypto";
+import aiService from "../services/aiService.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
+import { getAIRequestsStats } from "../controllers/aiController.js";
+import { getRedisClient, isRedisEnabled } from "../config/redis.js";
 
 const router = express.Router();
 
-// Middleware für alle AI Routes - Authentifizierung erforderlich
+// Middleware for all AI routes - authentication required
 router.use(authMiddleware);
 
-// Temporärer In-Memory Store für Konversationen (in Produktion Redis verwenden)
+// In-memory conversation store (use Redis in production)
 const conversationStore = new Map();
+const conversationKey = (userId, sessionId) => `ai:conversation:${userId}:${sessionId}`;
+const conversationTtlMs = Number(process.env.AI_CONVERSATION_TTL_MS) || 30 * 60 * 1000;
+
+const getConversation = async (userId, sessionId) => {
+  if (isRedisEnabled) {
+    const client = await getRedisClient();
+    const raw = await client.get(conversationKey(userId, sessionId));
+    return raw ? JSON.parse(raw) : null;
+  }
+  return conversationStore.get(conversationKey(userId, sessionId)) || null;
+};
+
+const setConversation = async (userId, sessionId, entry) => {
+  if (isRedisEnabled) {
+    const client = await getRedisClient();
+    const ttlSeconds = Math.max(1, Math.floor(conversationTtlMs / 1000));
+    await client.set(conversationKey(userId, sessionId), JSON.stringify(entry), { EX: ttlSeconds });
+    return;
+  }
+  conversationStore.set(conversationKey(userId, sessionId), entry);
+};
+
+const deleteConversation = async (userId, sessionId) => {
+  if (isRedisEnabled) {
+    const client = await getRedisClient();
+    await client.del(conversationKey(userId, sessionId));
+    return;
+  }
+  conversationStore.delete(conversationKey(userId, sessionId));
+};
+
+const sweepConversations = () => {
+  if (isRedisEnabled) return;
+  const now = Date.now();
+  for (const [key, entry] of conversationStore.entries()) {
+    if (!entry || now - entry.updatedAt > conversationTtlMs) {
+      conversationStore.delete(key);
+    }
+  }
+};
+
+setInterval(sweepConversations, Math.min(conversationTtlMs, 5 * 60 * 1000));
 
 /**
  * @route   POST /api/ai/chat
- * @desc    Chat mit AI-Assistent
+ * @desc    Chat with AI assistant
  * @body    { message, sessionId }
  * @access  Private
  */
-router.post('/chat', async (req, res) => {
+router.post("/chat", async (req, res) => {
   try {
     const { message, sessionId } = req.body;
-    
-    // Validierung
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+
+    // Validation
+    if (!message || typeof message !== "string" || message.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Nachricht ist erforderlich'
+        message: "Nachricht ist erforderlich",
       });
     }
 
-    if (!sessionId) {
-      return res.status(400).json({
+    const userId = req.user?._id?.toString();
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        message: 'Session-ID ist erforderlich'
+        message: "Nicht autorisiert",
       });
     }
 
-    // Gesprächsverlauf abrufen oder erstellen
-    let conversationHistory = conversationStore.get(sessionId) || [];
-    
-    console.log(`[AI-Chat] Neue Nachricht von Session ${sessionId}: "${message}"`);
+    // Get or create conversation history
+    let effectiveSessionId = typeof sessionId === "string" ? sessionId : null;
+    let stored = effectiveSessionId ? await getConversation(userId, effectiveSessionId) : null;
+    if (!stored) {
+      effectiveSessionId = randomUUID();
+      stored = null;
+    }
+    let conversationHistory = stored?.history || [];
 
-    // AI-Antwort generieren
+    console.log(
+      `[AI-Chat] Neue Nachricht von Session ${effectiveSessionId} (len=${message.length})`
+    );
+
+    // Generate AI response
     const response = await aiService.generateResponse(message.trim(), conversationHistory);
-    
-    // Konversationsverlauf aktualisieren
+
+    // Update conversation history
     conversationHistory.push(
       { role: "user", content: message.trim() },
       { role: "assistant", content: response.message }
     );
-    
-    // Verlauf auf die letzten 20 Nachrichten begrenzen (10 Paare)
+
+    // Keep only the last 20 messages (10 pairs)
     if (conversationHistory.length > 20) {
       conversationHistory = conversationHistory.slice(-20);
     }
-    
-    // Konversation speichern
-    conversationStore.set(sessionId, conversationHistory);
+
+    // Persist conversation
+    await setConversation(userId, effectiveSessionId, {
+      history: conversationHistory,
+      updatedAt: Date.now(),
+    });
 
     res.json({
       success: true,
       data: {
+        sessionId: effectiveSessionId,
         message: response.message,
         type: response.type,
         shouldCreateTicket: response.shouldCreateTicket,
         relatedSolutions: response.relatedSolutions || [],
-        metadata: response.metadata || {}
-      }
+        metadata: response.metadata || {},
+      },
     });
-
   } catch (error) {
-    console.error('[AI-Chat] Fehler:', error);
+    console.error("[AI-Chat] Fehler:", error);
     res.status(500).json({
       success: false,
-      message: 'Fehler beim Verarbeiten der Anfrage',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Fehler beim Verarbeiten der Anfrage",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
 
 /**
  * @route   POST /api/ai/analyze-priority
- * @desc    Analysiert die Priorität einer Nachricht
+ * @desc    Analyze priority for a message
  * @body    { message }
  * @access  Private
  */
-router.post('/analyze-priority', async (req, res) => {
+router.post("/analyze-priority", async (req, res) => {
   try {
     const { message } = req.body;
-    
-    if (!message || typeof message !== 'string') {
+
+    if (!message || typeof message !== "string") {
       return res.status(400).json({
         success: false,
-        message: 'Nachricht ist erforderlich'
+        message: "Nachricht ist erforderlich",
       });
     }
 
     const priority = await aiService.analyzePriority(message.trim());
-    
+
     res.json({
       success: true,
       data: {
         priority,
-        message: message.trim()
-      }
+        message: message.trim(),
+      },
     });
-
   } catch (error) {
-    console.error('[AI-Priority] Fehler:', error);
+    console.error("[AI-Priority] Fehler:", error);
     res.status(500).json({
       success: false,
-      message: 'Fehler bei der Prioritätsanalyse',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Fehler bei der Prioritaetsanalyse",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
 
 /**
  * @route   POST /api/ai/categorize
- * @desc    Kategorisiert ein Problem automatisch
+ * @desc    Categorize an issue automatically
  * @body    { message }
  * @access  Private
  */
-router.post('/categorize', async (req, res) => {
+router.post("/categorize", async (req, res) => {
   try {
     const { message } = req.body;
-    
-    if (!message || typeof message !== 'string') {
+
+    if (!message || typeof message !== "string") {
       return res.status(400).json({
         success: false,
-        message: 'Nachricht ist erforderlich'
+        message: "Nachricht ist erforderlich",
       });
     }
 
     const category = await aiService.categorizeIssue(message.trim());
-    
+
     res.json({
       success: true,
       data: {
         category,
-        message: message.trim()
-      }
+        message: message.trim(),
+      },
     });
-
   } catch (error) {
-    console.error('[AI-Categorize] Fehler:', error);
+    console.error("[AI-Categorize] Fehler:", error);
     res.status(500).json({
       success: false,
-      message: 'Fehler bei der Kategorisierung',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Fehler bei der Kategorisierung",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
 
 /**
  * @route   DELETE /api/ai/conversation/:sessionId
- * @desc    Löscht eine Konversation
- * @param   sessionId - Session ID der Konversation
+ * @desc    Delete a conversation
+ * @param   sessionId - Session ID
  * @access  Private
  */
-router.delete('/conversation/:sessionId', (req, res) => {
+router.delete("/conversation/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
-    
-    if (conversationStore.has(sessionId)) {
-      conversationStore.delete(sessionId);
-      console.log(`[AI-Chat] Konversation ${sessionId} gelöscht`);
+    const userId = req.user?._id?.toString();
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Nicht autorisiert",
+      });
     }
-    
+
+    await deleteConversation(userId, sessionId);
+    console.log(`[AI-Chat] Konversation ${sessionId} geloescht (user=${userId})`);
+
     res.json({
       success: true,
-      message: 'Konversation erfolgreich gelöscht'
+      message: "Konversation erfolgreich geloescht",
     });
-
   } catch (error) {
-    console.error('[AI-Chat] Fehler beim Löschen:', error);
+    console.error("[AI-Chat] Fehler beim Loeschen:", error);
     res.status(500).json({
       success: false,
-      message: 'Fehler beim Löschen der Konversation'
+      message: "Fehler beim Loeschen der Konversation",
     });
   }
 });
 
 /**
  * @route   GET /api/ai/status
- * @desc    Prüft den Status des AI-Service
+ * @desc    Check AI service status
  * @access  Private
  */
-router.get('/status', async (req, res) => {
+router.get("/status", async (req, res) => {
   try {
     const isConfigured = aiService.isConfigured();
-    
+
     if (!isConfigured) {
       return res.status(503).json({
         success: false,
-        message: 'AI-Service nicht konfiguriert',
+        message: "AI-Service nicht konfiguriert",
         data: {
           configured: false,
-          activeConversations: conversationStore.size
-        }
+          activeConversations: isRedisEnabled ? null : conversationStore.size,
+        },
       });
     }
 
-    // Verbindungstest (optional, kann auskommentiert werden um API-Kosten zu sparen)
+    // Connection test (optional)
     // const connectionTest = await aiService.testConnection();
 
     res.json({
       success: true,
-      message: 'AI-Service ist verfügbar',
+      message: "AI-Service ist verfuegbar",
       data: {
         configured: true,
-        activeConversations: conversationStore.size,
+        activeConversations: isRedisEnabled ? null : conversationStore.size,
         // connectionTest: connectionTest
-      }
+      },
     });
-
   } catch (error) {
-    console.error('[AI-Status] Fehler:', error);
+    console.error("[AI-Status] Fehler:", error);
     res.status(500).json({
       success: false,
-      message: 'Fehler beim Statuscheck',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Fehler beim Statuscheck",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
 
 /**
  * @route   POST /api/ai/test-connection
- * @desc    Testet die Verbindung zu OpenAI (nur für Entwicklung/Tests)
+ * @desc    Test OpenAI connection (dev/tests only)
  * @access  Private
  */
-router.post('', async (req, res) => {
+router.post("/test-connection", async (req, res) => {
   try {
     const testResult = await aiService.testConnection();
-    
+
     if (testResult.success) {
       res.json({
         success: true,
-        message: 'OpenAI Verbindung erfolgreich getestet',
-        data: testResult
+        message: "OpenAI Verbindung erfolgreich getestet",
+        data: testResult,
       });
     } else {
       res.status(503).json({
         success: false,
-        message: 'OpenAI Verbindung fehlgeschlagen',
-        data: testResult
+        message: "OpenAI Verbindung fehlgeschlagen",
+        data: testResult,
       });
     }
-
   } catch (error) {
-    console.error('[AI-Test] Fehler:', error);
+    console.error("[AI-Test] Fehler:", error);
     res.status(500).json({
       success: false,
-      message: 'Fehler beim Verbindungstest',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Fehler beim Verbindungstest",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
 
-router.get('/stats', getAIRequestsStats);
+router.get("/stats", getAIRequestsStats);
 
 export default router;

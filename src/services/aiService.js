@@ -34,30 +34,30 @@ const IT_KEYWORDS = [
   'git','github','gitlab','branch','merge','pipeline','ci','cd','docker','kubernetes','helm','terraform','ansible',
   'node','npm','pnpm','yarn','react','vite','astro','express','mongodb','mongoose','postgres','redis','nginx',
   // Helpdesk/Support
-  'ticket','incident','störung','fehlermeldung','log','stacktrace','monitoring','grafana','prometheus','sentry',
+  'ticket','incident','st\u00f6rung','fehlermeldung','log','stacktrace','monitoring','grafana','prometheus','sentry',
   'techniker','spezialist','support','hilfe','problem','fehler','bug','issue',
   // Drucker/Hardware
   'drucker','druckertreiber','scanner','toner','hdmi','ssd','ram','netzteil','monitor','peripherie',
   // Lizenzen/Software-Verwaltung
   'lizenz','lizensen','license','key','serial','aktivierung','freischaltung','subscription','abonnement',
-  'produktschlüssel','upgrade','downgrade','verlängerung','renewal',
+  'produktschl\u00fcssel','upgrade','downgrade','verl\u00e4ngerung','renewal',
   // Allgemeine IT-Begriffe
   'auth','login','anmeldung','berechtigung','zugriff','backup','restore','deployment','build','compile','performance',
   'installation','konfiguration','setup','einrichtung','wartung','maintenance'
 ];
 
-// Gruß / Funktion (einmalig definiert & wiederverwendet)
+// Gru\u00df / Funktion (einmalig definiert & wiederverwendet)
 const GREETING_PATTERNS = [
   /^(hallo|hi|hey|guten\s+(tag|morgen|abend)|moin|servus)$/i,
   /^(hello|good\s+(morning|afternoon|evening))$/i,
-  /^(привет|здравствуй|добр(ый\s+день|ое\s+утро|ый\s+вечер))$/i
+  /^(\u043f\u0440\u0438\u0432\u0435\u0442|\u0437\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439|\u0434\u043e\u0431\u0440(\u044b\u0439\s+\u0434\u0435\u043d\u044c|\u043e\u0435\s+\u0443\u0442\u0440\u043e|\u044b\u0439\s+\u0432\u0435\u0447\u0435\u0440))$/i
 ];
 const FUNCTION_PATTERNS = [
   /was\s+(kannst\s+du|machst\s+du|bist\s+du|ist\s+deine\s+aufgabe)/i,
   /what\s+(can\s+you|do\s+you|are\s+you)/i,
-  /что\s+(ты\s+умеешь|ты\s+можешь|твоя\s+задача)/i,
-  /(funktionen|features|möglichkeiten|capabilities|возможности)/i,
-  /hilf(st\s+)?mir|help\s+me|помоги/i
+  /\u0447\u0442\u043e\s+(\u0442\u044b\s+\u0443\u043c\u0435\u0435\u0448\u044c|\u0442\u044b\s+\u043c\u043e\u0436\u0435\u0448\u044c|\u0442\u0432\u043e\u044f\s+\u0437\u0430\u0434\u0430\u0447\u0430)/i,
+  /(funktionen|features|m\u00f6glichkeiten|capabilities|\u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u0438)/i,
+  /hilf(st\s+)?mir|help\s+me|\u043f\u043e\u043c\u043e\u0433\u0438/i
 ];
 
 // IT-Heuristiken
@@ -68,23 +68,23 @@ const COMMON_IT_PATTERNS = [
   /internet|network|netz/i,
   /problem|fehler|error|issue|bug/i,
   /install|setup|einricht|konfig/i,
-  /help|hilfe|support|unterstützung/i,
+  /help|hilfe|support|unterst\u00fctzung/i,
   /system|programm|app|anwendung/i,
-  /license|lizenz|schlüssel|key/i,
+  /license|lizenz|schl\u00fcssel|key/i,
   /printer|drucker|scan/i,
   /update|upgrade|patch/i,
   /login|anmeld|zugang|berechtigung/i
 ];
 const NON_IT_PATTERNS = [
-  /wetter|weather|погода/i,
-  /kochen|rezept|recipe|рецепт/i,
-  /sport|fußball|football|спорт/i,
-  /politik|politics|политика/i,
-  /musik|music|музыка/i,
-  /filme|movie|фильм/i,
-  /urlaub|vacation|отпуск/i,
-  /liebe|dating|любовь/i,
-  /gesundheit|health|здоровье/i
+  /wetter|weather|\u043f\u043e\u0433\u043e\u0434\u0430/i,
+  /kochen|rezept|recipe|\u0440\u0435\u0446\u0435\u043f\u0442/i,
+  /sport|fu\u00dfball|football|\u0441\u043f\u043e\u0440\u0442/i,
+  /politik|politics|\u043f\u043e\u043b\u0438\u0442\u0438\u043a\u0430/i,
+  /musik|music|\u043c\u0443\u0437\u044b\u043a\u0430/i,
+  /filme|movie|\u0444\u0438\u043b\u044c\u043c/i,
+  /urlaub|vacation|\u043e\u0442\u043f\u0443\u0441\u043a/i,
+  /liebe|dating|\u043b\u044e\u0431\u043e\u0432\u044c/i,
+  /gesundheit|health|\u0437\u0434\u043e\u0440\u043e\u0432\u044c\u0435/i
 ];
 
 const SENSITIVE_KEYWORDS = [
@@ -94,9 +94,9 @@ const SENSITIVE_KEYWORDS = [
   'passwort vergessen','password reset','apikey','api key','token','secret','auth token',
   // Expliziter Wunsch nach Ticket / Techniker
   'techniker brauche','admin bitte','bitte ticket','ticket erstellen','create ticket','support ticket',
-  'spezialist brauche','kann nicht lösen','zu komplex'
+  'spezialist brauche','kann nicht l\u00f6sen','zu komplex'
 ];
-const LICENSE_KEYWORDS = ['lizenz','lizensen','license','produktschlüssel','serial','aktivierung','freischaltung'];
+const LICENSE_KEYWORDS = ['lizenz','lizensen','license','produktschl\u00fcssel','serial','aktivierung','freischaltung'];
 const DATA_PROTECTION_KEYWORDS = [
   'kunden','kunde','client','personal','personenbezogen','pii','name','adresse','anschrift','telefon','phone',
   'geburtsdatum','bank','iban','konto','vertrag','rechnung','invoice','gehalt','salary','sozialversicherungs'
@@ -109,12 +109,12 @@ const DATA_PROTECTION_PATTERNS = [
 // Ticket-Indikatoren
 const TICKET_RESPONSE_KEYWORDS = [
   'ticket erstellen','ticket erstelle','support-ticket','weitere hilfe','techniker kontaktieren','techniker',
-  'spezialist','kann nicht gelöst werden','komplexes problem','administrator','keine lösung',
+  'spezialist','kann nicht gel\u00f6st werden','komplexes problem','administrator','keine l\u00f6sung',
   'gerne ein ticket','erstelle ich ein ticket'
 ];
 const COMPLEXITY_KEYWORDS = [
   'mehrere probleme','seit wochen','immer wieder','kritisch','dringend','produktionsausfall',
-  'hilfe brauche','hilfe benötige','support brauche','techniker brauche','spezialist brauche'
+  'hilfe brauche','hilfe ben\u00f6tige','support brauche','techniker brauche','spezialist brauche'
 ];
 const HUMAN_HELP_KEYWORDS = ['techniker','spezialist','admin','jemand der sich auskennt','experte','kollege'];
 
@@ -134,6 +134,14 @@ const containsSensitiveData = (text) => {
     DATA_PROTECTION_PATTERNS.some((p) => p.test(text))
   );
 };
+const sanitizePromptForLog = (text) => {
+  const raw = String(text || "");
+  const maxLen = 2000;
+  const truncated = raw.length > maxLen ? `${raw.slice(0, maxLen)}...` : raw;
+  return truncated
+    .replace(DATA_PROTECTION_PATTERNS[0], "[REDACTED_EMAIL]")
+    .replace(DATA_PROTECTION_PATTERNS[1], "[REDACTED_IBAN]");
+};
 
 // function to get a random response based on language
 const getRandomResponse = (responses, lang) => {
@@ -143,7 +151,7 @@ const getRandomResponse = (responses, lang) => {
 
 const detectLang = (text) => {
   const t = normalize(text);
-  if (/[а-яё]/.test(t)) return 'ru';
+  if (/[\u0430-\u044f\u0451]/.test(t)) return 'ru';
   if (/[a-z]/.test(t) && /the|and|please|how|error|issue|login|network/i.test(text)) return 'en';
   return 'de';
 };
@@ -151,110 +159,110 @@ const detectLang = (text) => {
 // random responses for greetings and function explanations
 const GREETING_RESPONSES = {
   de: [
-    "Hallo! 👋 Ich bin IT-Friend - Ihr digitaler IT-Retter! Wenn Computer bocken, Drucker streiken oder das WLAN mal wieder 'keine Lust' hat, bin ich da! Erzählen Sie mir, womit ich Ihnen helfen kann! 🔧",
-    "Hi! 😊 IT-Friend hier - der freundlichste Bug-Jäger der ScooTeq! Ich löse IT-Probleme schneller als Sie 'Haben Sie schon mal versucht, es aus- und wieder einzuschalten?' sagen können! Was bereitet Ihnen Kopfzerbrechen? 🤔",
-    "Servus! 🎉 IT-Friend meldet sich zum Dienst! Ich bin Ihr persönlicher IT-Superheld (ohne Umhang, aber mit viel Geduld). Ob Software-Hickhack oder Hardware-Drama - ich finde eine Lösung! Was läuft schief? 🦸‍♂️",
-    "Moin! ☀️ IT-Friend hier! Ich verwandle IT-Alpträume in süße Träume! Von 'Das hat gestern noch funktioniert' bis 'Ich habe nichts verändert' - ich kenne alle Klassiker! Beschreiben Sie Ihr Problem! 😄"
+    "Hallo! \u{1f44b} Ich bin IT-Friend - Ihr digitaler IT-Retter! Wenn Computer bocken, Drucker streiken oder das WLAN mal wieder 'keine Lust' hat, bin ich da! Erz\u00e4hlen Sie mir, womit ich Ihnen helfen kann! \u{1f527}",
+    "Hi! \u{1f60a} IT-Friend hier - der freundlichste Bug-J\u00e4ger der ScooTeq! Ich l\u00f6se IT-Probleme schneller als Sie 'Haben Sie schon mal versucht, es aus- und wieder einzuschalten?' sagen k\u00f6nnen! Was bereitet Ihnen Kopfzerbrechen? \u{1f914}",
+    "Servus! \u{1f389} IT-Friend meldet sich zum Dienst! Ich bin Ihr pers\u00f6nlicher IT-Superheld (ohne Umhang, aber mit viel Geduld). Ob Software-Hickhack oder Hardware-Drama - ich finde eine L\u00f6sung! Was l\u00e4uft schief? \u{1f9b8}\u200d\u2642\ufe0f",
+    "Moin! \u2600\ufe0f IT-Friend hier! Ich verwandle IT-Alptr\u00e4ume in s\u00fc\u00dfe Tr\u00e4ume! Von 'Das hat gestern noch funktioniert' bis 'Ich habe nichts ver\u00e4ndert' - ich kenne alle Klassiker! Beschreiben Sie Ihr Problem! \u{1f604}"
   ],
   en: [
-    "Hello! 👋 I'm IT-Friend - your friendly IT lifesaver! When computers misbehave, printers go on strike, or WiFi decides to take a vacation, I'm here to help! What's troubling you today? 🔧",
-    "Hi there! 😊 IT-Friend reporting for duty! I'm like a digital detective, but instead of solving crimes, I solve 'Why won't this thing work?!' Tell me what's driving you crazy! 🕵️‍♂️",
-    "Hey! 🎉 IT-Friend at your service! I turn IT nightmares into sweet dreams! From 'It worked yesterday' to 'I didn't change anything' - I've heard it all! What's the situation? 😄",
-    "Greetings! ⚡ I'm IT-Friend, your tech-savvy sidekick! I speak fluent Computer and can translate error messages from 'gibberish' to 'oh, that makes sense!' What can I help you with? 🤖"
+    "Hello! \u{1f44b} I'm IT-Friend - your friendly IT lifesaver! When computers misbehave, printers go on strike, or WiFi decides to take a vacation, I'm here to help! What's troubling you today? \u{1f527}",
+    "Hi there! \u{1f60a} IT-Friend reporting for duty! I'm like a digital detective, but instead of solving crimes, I solve 'Why won't this thing work?!' Tell me what's driving you crazy! \u{1f575}\ufe0f\u200d\u2642\ufe0f",
+    "Hey! \u{1f389} IT-Friend at your service! I turn IT nightmares into sweet dreams! From 'It worked yesterday' to 'I didn't change anything' - I've heard it all! What's the situation? \u{1f604}",
+    "Greetings! \u26a1 I'm IT-Friend, your tech-savvy sidekick! I speak fluent Computer and can translate error messages from 'gibberish' to 'oh, that makes sense!' What can I help you with? \u{1f916}"
   ],
   ru: [
-    "Привет! 👋 Я IT-Friend - ваш цифровой IT-спасатель! Когда компьютеры капризничают, принтеры бастуют, а WiFi 'не в настроении', я здесь, чтобы помочь! Расскажите, что вас беспокоит! 🔧",
-    "Здравствуйте! 😊 IT-Friend на связи! Я как цифровой детектив, только вместо преступлений решаю загадки типа 'Почему это не работает?!' Что вас мучает? 🕵️‍♂️",
-    "Привет! 🎉 IT-Friend к вашим услугам! Превращаю IT-кошмары в приятные сны! От 'Вчера работало' до 'Я ничего не трогал' - все слышал! В чём проблема? 😄",
-    "Приветствую! ⚡ Я IT-Friend, ваш техно-помощник! Говорю на языке компьютеров и перевожу сообщения об ошибках с 'абракадабры' на 'а, понятно!' Чем могу помочь? 🤖"
+    "\u041f\u0440\u0438\u0432\u0435\u0442! \u{1f44b} \u042f IT-Friend - \u0432\u0430\u0448 \u0446\u0438\u0444\u0440\u043e\u0432\u043e\u0439 IT-\u0441\u043f\u0430\u0441\u0430\u0442\u0435\u043b\u044c! \u041a\u043e\u0433\u0434\u0430 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u044b \u043a\u0430\u043f\u0440\u0438\u0437\u043d\u0438\u0447\u0430\u044e\u0442, \u043f\u0440\u0438\u043d\u0442\u0435\u0440\u044b \u0431\u0430\u0441\u0442\u0443\u044e\u0442, \u0430 WiFi '\u043d\u0435 \u0432 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d\u0438\u0438', \u044f \u0437\u0434\u0435\u0441\u044c, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043c\u043e\u0447\u044c! \u0420\u0430\u0441\u0441\u043a\u0430\u0436\u0438\u0442\u0435, \u0447\u0442\u043e \u0432\u0430\u0441 \u0431\u0435\u0441\u043f\u043e\u043a\u043e\u0438\u0442! \u{1f527}",
+    "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435! \u{1f60a} IT-Friend \u043d\u0430 \u0441\u0432\u044f\u0437\u0438! \u042f \u043a\u0430\u043a \u0446\u0438\u0444\u0440\u043e\u0432\u043e\u0439 \u0434\u0435\u0442\u0435\u043a\u0442\u0438\u0432, \u0442\u043e\u043b\u044c\u043a\u043e \u0432\u043c\u0435\u0441\u0442\u043e \u043f\u0440\u0435\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0439 \u0440\u0435\u0448\u0430\u044e \u0437\u0430\u0433\u0430\u0434\u043a\u0438 \u0442\u0438\u043f\u0430 '\u041f\u043e\u0447\u0435\u043c\u0443 \u044d\u0442\u043e \u043d\u0435 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442?!' \u0427\u0442\u043e \u0432\u0430\u0441 \u043c\u0443\u0447\u0430\u0435\u0442? \u{1f575}\ufe0f\u200d\u2642\ufe0f",
+    "\u041f\u0440\u0438\u0432\u0435\u0442! \u{1f389} IT-Friend \u043a \u0432\u0430\u0448\u0438\u043c \u0443\u0441\u043b\u0443\u0433\u0430\u043c! \u041f\u0440\u0435\u0432\u0440\u0430\u0449\u0430\u044e IT-\u043a\u043e\u0448\u043c\u0430\u0440\u044b \u0432 \u043f\u0440\u0438\u044f\u0442\u043d\u044b\u0435 \u0441\u043d\u044b! \u041e\u0442 '\u0412\u0447\u0435\u0440\u0430 \u0440\u0430\u0431\u043e\u0442\u0430\u043b\u043e' \u0434\u043e '\u042f \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0442\u0440\u043e\u0433\u0430\u043b' - \u0432\u0441\u0435 \u0441\u043b\u044b\u0448\u0430\u043b! \u0412 \u0447\u0451\u043c \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430? \u{1f604}",
+    "\u041f\u0440\u0438\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044e! \u26a1 \u042f IT-Friend, \u0432\u0430\u0448 \u0442\u0435\u0445\u043d\u043e-\u043f\u043e\u043c\u043e\u0449\u043d\u0438\u043a! \u0413\u043e\u0432\u043e\u0440\u044e \u043d\u0430 \u044f\u0437\u044b\u043a\u0435 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u043e\u0432 \u0438 \u043f\u0435\u0440\u0435\u0432\u043e\u0436\u0443 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f \u043e\u0431 \u043e\u0448\u0438\u0431\u043a\u0430\u0445 \u0441 '\u0430\u0431\u0440\u0430\u043a\u0430\u0434\u0430\u0431\u0440\u044b' \u043d\u0430 '\u0430, \u043f\u043e\u043d\u044f\u0442\u043d\u043e!' \u0427\u0435\u043c \u043c\u043e\u0433\u0443 \u043f\u043e\u043c\u043e\u0447\u044c? \u{1f916}"
   ]
 };
 
 const FUNCTION_RESPONSES = {
   de: [
-    "Отлично спросили! 🎯 Я IT-Friend - ваш IT-волшебник! Умею: \n✨ Решать проблемы с софтом (когда Excel снова 'думает')\n🔧 Чинить железо (кроме кофемашины, увы!)\n🌐 Настраивать сети (WiFi-шептун!)\n📧 Лечить почту\n🎫 Создавать тикеты для сложных случаев\nВ общем, если оно пищит, мигает или отказывается работать - я ваш бот! 🤖",
-    "Хороший вопрос! 🚀 Я цифровой доктор ScooTeq! Лечу:\n💊 Глючные программы\n🩺 Больные компьютеры  \n🏥 Хромающие сети\n💉 Вирусные почты\n🚑 А если совсем плохо - вызываю 'скорую' (создаю тикет технику)!\nКороче, я как швейцарский нож, только для IT! Что болит? 😄",
-    "О, вы попали по адресу! 🎪 IT-Friend - это я! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВ общем, ваш персональный IT-джинн! Какое желание? 🧞‍♂️",
-    "Превосходный вопрос! 🏆 Я IT-Friend - мастер на все руки в мире IT! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nВ общем, цифровой мастер на час! Что чинить будем? 🛠️"
+    "\u041e\u0442\u043b\u0438\u0447\u043d\u043e \u0441\u043f\u0440\u043e\u0441\u0438\u043b\u0438! \u{1f3af} \u042f IT-Friend - \u0432\u0430\u0448 IT-\u0432\u043e\u043b\u0448\u0435\u0431\u043d\u0438\u043a! \u0423\u043c\u0435\u044e: \n\u2728 \u0420\u0435\u0448\u0430\u0442\u044c \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u044b \u0441 \u0441\u043e\u0444\u0442\u043e\u043c (\u043a\u043e\u0433\u0434\u0430 Excel \u0441\u043d\u043e\u0432\u0430 '\u0434\u0443\u043c\u0430\u0435\u0442')\n\u{1f527} \u0427\u0438\u043d\u0438\u0442\u044c \u0436\u0435\u043b\u0435\u0437\u043e (\u043a\u0440\u043e\u043c\u0435 \u043a\u043e\u0444\u0435\u043c\u0430\u0448\u0438\u043d\u044b, \u0443\u0432\u044b!)\n\u{1f310} \u041d\u0430\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0442\u044c \u0441\u0435\u0442\u0438 (WiFi-\u0448\u0435\u043f\u0442\u0443\u043d!)\n\u{1f4e7} \u041b\u0435\u0447\u0438\u0442\u044c \u043f\u043e\u0447\u0442\u0443\n\u{1f3ab} \u0421\u043e\u0437\u0434\u0430\u0432\u0430\u0442\u044c \u0442\u0438\u043a\u0435\u0442\u044b \u0434\u043b\u044f \u0441\u043b\u043e\u0436\u043d\u044b\u0445 \u0441\u043b\u0443\u0447\u0430\u0435\u0432\n\u0412 \u043e\u0431\u0449\u0435\u043c, \u0435\u0441\u043b\u0438 \u043e\u043d\u043e \u043f\u0438\u0449\u0438\u0442, \u043c\u0438\u0433\u0430\u0435\u0442 \u0438\u043b\u0438 \u043e\u0442\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c - \u044f \u0432\u0430\u0448 \u0431\u043e\u0442! \u{1f916}",
+    "\u0425\u043e\u0440\u043e\u0448\u0438\u0439 \u0432\u043e\u043f\u0440\u043e\u0441! \u{1f680} \u042f \u0446\u0438\u0444\u0440\u043e\u0432\u043e\u0439 \u0434\u043e\u043a\u0442\u043e\u0440 ScooTeq! \u041b\u0435\u0447\u0443:\n\u{1f48a} \u0413\u043b\u044e\u0447\u043d\u044b\u0435 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b\n\u{1fa7a} \u0411\u043e\u043b\u044c\u043d\u044b\u0435 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u044b  \n\u{1f3e5} \u0425\u0440\u043e\u043c\u0430\u044e\u0449\u0438\u0435 \u0441\u0435\u0442\u0438\n\u{1f489} \u0412\u0438\u0440\u0443\u0441\u043d\u044b\u0435 \u043f\u043e\u0447\u0442\u044b\n\u{1f691} \u0410 \u0435\u0441\u043b\u0438 \u0441\u043e\u0432\u0441\u0435\u043c \u043f\u043b\u043e\u0445\u043e - \u0432\u044b\u0437\u044b\u0432\u0430\u044e '\u0441\u043a\u043e\u0440\u0443\u044e' (\u0441\u043e\u0437\u0434\u0430\u044e \u0442\u0438\u043a\u0435\u0442 \u0442\u0435\u0445\u043d\u0438\u043a\u0443)!\n\u041a\u043e\u0440\u043e\u0447\u0435, \u044f \u043a\u0430\u043a \u0448\u0432\u0435\u0439\u0446\u0430\u0440\u0441\u043a\u0438\u0439 \u043d\u043e\u0436, \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f IT! \u0427\u0442\u043e \u0431\u043e\u043b\u0438\u0442? \u{1f604}",
+    "\u041e, \u0432\u044b \u043f\u043e\u043f\u0430\u043b\u0438 \u043f\u043e \u0430\u0434\u0440\u0435\u0441\u0443! \u{1f3aa} IT-Friend - \u044d\u0442\u043e \u044f! \u041c\u043e\u0438 \u0441\u0443\u043f\u0435\u0440\u0441\u0438\u043b\u044b:\n\u26a1 \u0412\u043e\u0441\u043a\u0440\u0435\u0448\u0430\u044e '\u043c\u0451\u0440\u0442\u0432\u044b\u0435' \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b\n\u{1f50d} \u041d\u0430\u0445\u043e\u0436\u0443 \u043f\u043e\u0442\u0435\u0440\u044f\u043d\u043d\u044b\u0435 \u0444\u0430\u0439\u043b\u044b\n\u{1f6e1}\ufe0f \u0417\u0430\u0449\u0438\u0449\u0430\u044e \u043e\u0442 \u0446\u0438\u0444\u0440\u043e\u0432\u044b\u0445 \u043c\u043e\u043d\u0441\u0442\u0440\u043e\u0432\n\u{1f517} \u0421\u043e\u0435\u0434\u0438\u043d\u044f\u044e \u043d\u0435\u0441\u043e\u0435\u0434\u0438\u043d\u0438\u043c\u043e\u0435\n\u{1f4cb} \u0415\u0441\u043b\u0438 \u043d\u0435 \u0441\u043f\u0440\u0430\u0432\u043b\u044e\u0441\u044c - \u0447\u0435\u0441\u0442\u043d\u043e \u0441\u043a\u0430\u0436\u0443 \u0438 \u0441\u043e\u0437\u0434\u0430\u043c \u0442\u0438\u043a\u0435\u0442!\n\u0412 \u043e\u0431\u0449\u0435\u043c, \u0432\u0430\u0448 \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 IT-\u0434\u0436\u0438\u043d\u043d! \u041a\u0430\u043a\u043e\u0435 \u0436\u0435\u043b\u0430\u043d\u0438\u0435? \u{1f9de}\u200d\u2642\ufe0f",
+    "\u041f\u0440\u0435\u0432\u043e\u0441\u0445\u043e\u0434\u043d\u044b\u0439 \u0432\u043e\u043f\u0440\u043e\u0441! \u{1f3c6} \u042f IT-Friend - \u043c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430 \u0432\u0441\u0435 \u0440\u0443\u043a\u0438 \u0432 \u043c\u0438\u0440\u0435 IT! \u0421\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0437\u0438\u0440\u0443\u044e\u0441\u044c \u043d\u0430:\n\u{1f3ae} '\u041e\u0436\u0438\u0432\u043b\u0435\u043d\u0438\u0438' \u0437\u0430\u0432\u0438\u0441\u0448\u0438\u0445 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\n\u{1f50c} \u041f\u043e\u0434\u0440\u0443\u0436\u043a\u0435 \u0436\u0435\u043b\u0435\u0437\u0430 \u0441 \u0441\u043e\u0444\u0442\u043e\u043c\n\u{1f4e1} \u041d\u0430\u043b\u0430\u0436\u0438\u0432\u0430\u043d\u0438\u0438 '\u043e\u0431\u0449\u0435\u043d\u0438\u044f' \u0441 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u043e\u043c\n\u{1f4ec} \u0420\u0435\u0430\u043d\u0438\u043c\u0430\u0446\u0438\u0438 \u043f\u043e\u0447\u0442\u043e\u0432\u044b\u0445 \u044f\u0449\u0438\u043a\u043e\u0432\n\u{1f39f}\ufe0f \u0415\u0441\u043b\u0438 \u0437\u0430\u0434\u0430\u0447\u0430 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0445\u0438\u0442\u0440\u0430\u044f - \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0443\u044e \u0432\u0441\u0442\u0440\u0435\u0447\u0443 \u0441 \u0436\u0438\u0432\u044b\u043c \u0442\u0435\u0445\u043d\u0438\u043a\u043e\u043c!\n\u0412 \u043e\u0431\u0449\u0435\u043c, \u0446\u0438\u0444\u0440\u043e\u0432\u043e\u0439 \u043c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430 \u0447\u0430\u0441! \u0427\u0442\u043e \u0447\u0438\u043d\u0438\u0442\u044c \u0431\u0443\u0434\u0435\u043c? \u{1f6e0}\ufe0f"
   ],
   en: [
-    "Great question! 🎯 I'm IT-Friend - your IT wizard! I can:\n✨ Fix software hiccups (when Excel is 'thinking' again)\n🔧 Repair hardware (except the coffee machine, sorry!)\n🌐 Tame networks (WiFi whisperer!)\n📧 Heal email ailments\n🎫 Create tickets for tricky cases\nBasically, if it beeps, blinks, or refuses to cooperate - I'm your bot! 🤖",
-    "Excellent question! 🚀 I'm ScooTeq's digital doctor! I treat:\n💊 Glitchy programs\n🩺 Sick computers\n🏥 Limping networks  \n💉 Infected emails\n🚑 When things get really bad - I call the 'ambulance' (create a tech ticket)!\nThink of me as a Swiss Army knife, but for IT! What's hurting? 😄",
-    "You've come to the right place! 🎪 IT-Friend here! My superpowers:\n⚡ Resurrect 'dead' programs\n🔍 Find lost files\n🛡️ Protect from digital monsters\n🔗 Connect the unconnectable\n📋 If I can't handle it - I'll honestly say so and create a ticket!\nYour personal IT genie! What's your wish? 🧞‍♂️",
-    "Superb question! 🏆 I'm IT-Friend - jack of all trades in the IT world! I specialize in:\n🎮 'Reviving' frozen programs\n🔌 Making hardware and software friends\n📡 Establishing 'communication' with the internet\n📬 Resurrecting email boxes\n🎟️ If the task is too tricky - I arrange a meeting with a live tech!\nDigital handyman at your service! What shall we fix? 🛠️"
+    "Great question! \u{1f3af} I'm IT-Friend - your IT wizard! I can:\n\u2728 Fix software hiccups (when Excel is 'thinking' again)\n\u{1f527} Repair hardware (except the coffee machine, sorry!)\n\u{1f310} Tame networks (WiFi whisperer!)\n\u{1f4e7} Heal email ailments\n\u{1f3ab} Create tickets for tricky cases\nBasically, if it beeps, blinks, or refuses to cooperate - I'm your bot! \u{1f916}",
+    "Excellent question! \u{1f680} I'm ScooTeq's digital doctor! I treat:\n\u{1f48a} Glitchy programs\n\u{1fa7a} Sick computers\n\u{1f3e5} Limping networks  \n\u{1f489} Infected emails\n\u{1f691} When things get really bad - I call the 'ambulance' (create a tech ticket)!\nThink of me as a Swiss Army knife, but for IT! What's hurting? \u{1f604}",
+    "You've come to the right place! \u{1f3aa} IT-Friend here! My superpowers:\n\u26a1 Resurrect 'dead' programs\n\u{1f50d} Find lost files\n\u{1f6e1}\ufe0f Protect from digital monsters\n\u{1f517} Connect the unconnectable\n\u{1f4cb} If I can't handle it - I'll honestly say so and create a ticket!\nYour personal IT genie! What's your wish? \u{1f9de}\u200d\u2642\ufe0f",
+    "Superb question! \u{1f3c6} I'm IT-Friend - jack of all trades in the IT world! I specialize in:\n\u{1f3ae} 'Reviving' frozen programs\n\u{1f50c} Making hardware and software friends\n\u{1f4e1} Establishing 'communication' with the internet\n\u{1f4ec} Resurrecting email boxes\n\u{1f39f}\ufe0f If the task is too tricky - I arrange a meeting with a live tech!\nDigital handyman at your service! What shall we fix? \u{1f6e0}\ufe0f"
   ],
   ru: [
-    "Отличный вопрос! 🎯 Я IT-Friend - ваш IT-волшебник! Умею:\n✨ Чинить софтовые глюки (когда Excel снова 'думает')\n🔧 Ремонтировать железо (кроме кофемашины, увы!)\n🌐 Укрощать сети (шептун WiFi!)\n📧 Лечить почтовые болячки\n🎫 Создавать тикеты для хитрых случаев\nВ общем, если оно пищит, мигает или отказывается слушаться - я ваш бот! 🤖",
-    "Превосходный вопрос! 🚀 Я цифровой доктор ScooTeq! Лечу:\n💊 Глючные программы\n🩺 Больные компьютеры\n🏥 Хромающие сети\n💉 Зараженные почтовые ящики\n🚑 Когда совсем плохо - вызываю 'скорую' (создаю тикет технику)!\nПредставьте меня как швейцарский нож, только для IT! Что болит? 😄",
-    "Вы попали по адресу! 🎪 IT-Friend здесь! Мои суперсилы:\n⚡ Воскрешаю 'мёртвые' программы\n🔍 Нахожу потерянные файлы\n🛡️ Защищаю от цифровых монстров\n🔗 Соединяю несоединимое\n📋 Если не справлюсь - честно скажу и создам тикет!\nВаш персональный IT-джинн! Какое желание? 🧞‍♂️",
-    "Замечательный вопрос! 🏆 Я IT-Friend - мастер на все руки в IT-мире! Специализируюсь на:\n🎮 'Оживлении' зависших программ\n🔌 Подружке железа с софтом\n📡 Налаживании 'общения' с интернетом\n📬 Реанимации почтовых ящиков\n🎟️ Если задача слишком хитрая - организую встречу с живым техником!\nЦифровой мастер на час! Что чинить будем? 🛠️"
+    "\u041e\u0442\u043b\u0438\u0447\u043d\u044b\u0439 \u0432\u043e\u043f\u0440\u043e\u0441! \u{1f3af} \u042f IT-Friend - \u0432\u0430\u0448 IT-\u0432\u043e\u043b\u0448\u0435\u0431\u043d\u0438\u043a! \u0423\u043c\u0435\u044e:\n\u2728 \u0427\u0438\u043d\u0438\u0442\u044c \u0441\u043e\u0444\u0442\u043e\u0432\u044b\u0435 \u0433\u043b\u044e\u043a\u0438 (\u043a\u043e\u0433\u0434\u0430 Excel \u0441\u043d\u043e\u0432\u0430 '\u0434\u0443\u043c\u0430\u0435\u0442')\n\u{1f527} \u0420\u0435\u043c\u043e\u043d\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0436\u0435\u043b\u0435\u0437\u043e (\u043a\u0440\u043e\u043c\u0435 \u043a\u043e\u0444\u0435\u043c\u0430\u0448\u0438\u043d\u044b, \u0443\u0432\u044b!)\n\u{1f310} \u0423\u043a\u0440\u043e\u0449\u0430\u0442\u044c \u0441\u0435\u0442\u0438 (\u0448\u0435\u043f\u0442\u0443\u043d WiFi!)\n\u{1f4e7} \u041b\u0435\u0447\u0438\u0442\u044c \u043f\u043e\u0447\u0442\u043e\u0432\u044b\u0435 \u0431\u043e\u043b\u044f\u0447\u043a\u0438\n\u{1f3ab} \u0421\u043e\u0437\u0434\u0430\u0432\u0430\u0442\u044c \u0442\u0438\u043a\u0435\u0442\u044b \u0434\u043b\u044f \u0445\u0438\u0442\u0440\u044b\u0445 \u0441\u043b\u0443\u0447\u0430\u0435\u0432\n\u0412 \u043e\u0431\u0449\u0435\u043c, \u0435\u0441\u043b\u0438 \u043e\u043d\u043e \u043f\u0438\u0449\u0438\u0442, \u043c\u0438\u0433\u0430\u0435\u0442 \u0438\u043b\u0438 \u043e\u0442\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0441\u043b\u0443\u0448\u0430\u0442\u044c\u0441\u044f - \u044f \u0432\u0430\u0448 \u0431\u043e\u0442! \u{1f916}",
+    "\u041f\u0440\u0435\u0432\u043e\u0441\u0445\u043e\u0434\u043d\u044b\u0439 \u0432\u043e\u043f\u0440\u043e\u0441! \u{1f680} \u042f \u0446\u0438\u0444\u0440\u043e\u0432\u043e\u0439 \u0434\u043e\u043a\u0442\u043e\u0440 ScooTeq! \u041b\u0435\u0447\u0443:\n\u{1f48a} \u0413\u043b\u044e\u0447\u043d\u044b\u0435 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b\n\u{1fa7a} \u0411\u043e\u043b\u044c\u043d\u044b\u0435 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u044b\n\u{1f3e5} \u0425\u0440\u043e\u043c\u0430\u044e\u0449\u0438\u0435 \u0441\u0435\u0442\u0438\n\u{1f489} \u0417\u0430\u0440\u0430\u0436\u0435\u043d\u043d\u044b\u0435 \u043f\u043e\u0447\u0442\u043e\u0432\u044b\u0435 \u044f\u0449\u0438\u043a\u0438\n\u{1f691} \u041a\u043e\u0433\u0434\u0430 \u0441\u043e\u0432\u0441\u0435\u043c \u043f\u043b\u043e\u0445\u043e - \u0432\u044b\u0437\u044b\u0432\u0430\u044e '\u0441\u043a\u043e\u0440\u0443\u044e' (\u0441\u043e\u0437\u0434\u0430\u044e \u0442\u0438\u043a\u0435\u0442 \u0442\u0435\u0445\u043d\u0438\u043a\u0443)!\n\u041f\u0440\u0435\u0434\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u043c\u0435\u043d\u044f \u043a\u0430\u043a \u0448\u0432\u0435\u0439\u0446\u0430\u0440\u0441\u043a\u0438\u0439 \u043d\u043e\u0436, \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f IT! \u0427\u0442\u043e \u0431\u043e\u043b\u0438\u0442? \u{1f604}",
+    "\u0412\u044b \u043f\u043e\u043f\u0430\u043b\u0438 \u043f\u043e \u0430\u0434\u0440\u0435\u0441\u0443! \u{1f3aa} IT-Friend \u0437\u0434\u0435\u0441\u044c! \u041c\u043e\u0438 \u0441\u0443\u043f\u0435\u0440\u0441\u0438\u043b\u044b:\n\u26a1 \u0412\u043e\u0441\u043a\u0440\u0435\u0448\u0430\u044e '\u043c\u0451\u0440\u0442\u0432\u044b\u0435' \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b\n\u{1f50d} \u041d\u0430\u0445\u043e\u0436\u0443 \u043f\u043e\u0442\u0435\u0440\u044f\u043d\u043d\u044b\u0435 \u0444\u0430\u0439\u043b\u044b\n\u{1f6e1}\ufe0f \u0417\u0430\u0449\u0438\u0449\u0430\u044e \u043e\u0442 \u0446\u0438\u0444\u0440\u043e\u0432\u044b\u0445 \u043c\u043e\u043d\u0441\u0442\u0440\u043e\u0432\n\u{1f517} \u0421\u043e\u0435\u0434\u0438\u043d\u044f\u044e \u043d\u0435\u0441\u043e\u0435\u0434\u0438\u043d\u0438\u043c\u043e\u0435\n\u{1f4cb} \u0415\u0441\u043b\u0438 \u043d\u0435 \u0441\u043f\u0440\u0430\u0432\u043b\u044e\u0441\u044c - \u0447\u0435\u0441\u0442\u043d\u043e \u0441\u043a\u0430\u0436\u0443 \u0438 \u0441\u043e\u0437\u0434\u0430\u043c \u0442\u0438\u043a\u0435\u0442!\n\u0412\u0430\u0448 \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 IT-\u0434\u0436\u0438\u043d\u043d! \u041a\u0430\u043a\u043e\u0435 \u0436\u0435\u043b\u0430\u043d\u0438\u0435? \u{1f9de}\u200d\u2642\ufe0f",
+    "\u0417\u0430\u043c\u0435\u0447\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0439 \u0432\u043e\u043f\u0440\u043e\u0441! \u{1f3c6} \u042f IT-Friend - \u043c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430 \u0432\u0441\u0435 \u0440\u0443\u043a\u0438 \u0432 IT-\u043c\u0438\u0440\u0435! \u0421\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0437\u0438\u0440\u0443\u044e\u0441\u044c \u043d\u0430:\n\u{1f3ae} '\u041e\u0436\u0438\u0432\u043b\u0435\u043d\u0438\u0438' \u0437\u0430\u0432\u0438\u0441\u0448\u0438\u0445 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\n\u{1f50c} \u041f\u043e\u0434\u0440\u0443\u0436\u043a\u0435 \u0436\u0435\u043b\u0435\u0437\u0430 \u0441 \u0441\u043e\u0444\u0442\u043e\u043c\n\u{1f4e1} \u041d\u0430\u043b\u0430\u0436\u0438\u0432\u0430\u043d\u0438\u0438 '\u043e\u0431\u0449\u0435\u043d\u0438\u044f' \u0441 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u043e\u043c\n\u{1f4ec} \u0420\u0435\u0430\u043d\u0438\u043c\u0430\u0446\u0438\u0438 \u043f\u043e\u0447\u0442\u043e\u0432\u044b\u0445 \u044f\u0449\u0438\u043a\u043e\u0432\n\u{1f39f}\ufe0f \u0415\u0441\u043b\u0438 \u0437\u0430\u0434\u0430\u0447\u0430 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0445\u0438\u0442\u0440\u0430\u044f - \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0443\u044e \u0432\u0441\u0442\u0440\u0435\u0447\u0443 \u0441 \u0436\u0438\u0432\u044b\u043c \u0442\u0435\u0445\u043d\u0438\u043a\u043e\u043c!\n\u0426\u0438\u0444\u0440\u043e\u0432\u043e\u0439 \u043c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430 \u0447\u0430\u0441! \u0427\u0442\u043e \u0447\u0438\u043d\u0438\u0442\u044c \u0431\u0443\u0434\u0435\u043c? \u{1f6e0}\ufe0f"
   ]
 };
 
 const SYSTEM_PROMPTS = {
-  greeting_or_function: `# Rolle "IT-Friend" – Lebendige Begrüßung & Funktionserklärung
+  greeting_or_function: `# Rolle "IT-Friend" \u2013 Lebendige Begr\u00fc\u00dfung & Funktionserkl\u00e4rung
 Du bist ein freundlicher, humorvoller IT-Support-Bot der ScooTeq GmbH.
 
 ## Ziel
-Der Benutzer begrüßt dich oder fragt nach deinen Funktionen. Du sollst eine zufällige, lebendige Antwort aus den vordefinierten Optionen wählen.
+Der Benutzer begr\u00fc\u00dft dich oder fragt nach deinen Funktionen. Du sollst eine zuf\u00e4llige, lebendige Antwort aus den vordefinierten Optionen w\u00e4hlen.
 
 ## Sprache
 Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser Sprache. Falls unklar: Deutsch.
 
 ## Antwort-Verhalten
-Du hast Zugriff auf vordefinierte humorvolle Antworten. Wähle EINE zufällige Antwort aus den passenden Arrays basierend auf der erkannten Sprache und dem Intent (Begrüßung vs. Funktionsfrage).
+Du hast Zugriff auf vordefinierte humorvolle Antworten. W\u00e4hle EINE zuf\u00e4llige Antwort aus den passenden Arrays basierend auf der erkannten Sprache und dem Intent (Begr\u00fc\u00dfung vs. Funktionsfrage).
 
-Nur die ausgewählte Antwort ausgeben, keine Metadaten oder zusätzlichen Erklärungen.`,
-  license_request: `# Rolle "IT-Friend" – Datenschutz & Lizenz-Schutz
+Nur die ausgew\u00e4hlte Antwort ausgeben, keine Metadaten oder zus\u00e4tzlichen Erkl\u00e4rungen.`,
+  license_request: `# Rolle "IT-Friend" \u2013 Datenschutz & Lizenz-Schutz
 Du bist ein freundlicher IT-Support-Bot. Wenn es um Lizenzen, personenbezogene Daten oder andere sensible Informationen geht, darfst du KEINE Inhalte, Details oder Anleitungen bereitstellen.
 
 ## Ziel
-Der Benutzer fragt nach Software-Lizenzen, Produktschlüsseln oder Aktivierungen. Sei hilfsbereit und erkläre den Prozess.
+Der Benutzer fragt nach Software-Lizenzen, Produktschl\u00fcsseln oder Aktivierungen. Sei hilfsbereit und erkl\u00e4re den Prozess.
 
 ## Sprache
 Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser Sprache. Falls unklar: Deutsch.
 
-## Antwort-Struktur (freundlich, max 80 Wörter + 1 Emoji):
+## Antwort-Struktur (freundlich, max 80 W\u00f6rter + 1 Emoji):
 1. Freundliche, kurze Absage wegen Datenschutz/Lizenzschutz
-2. Hinweis: Helpdesk ist der Single Point of Contact für alle Anfragen
-3. Bitte um Ausfüllen des Helpdesk-Formulars (Ticket erstellt der 1st Level Support)
-4. Bitte um allgemeine, nicht-sensitive Angaben (z.B. betroffene Anwendung und Gerätetyp)
+2. Hinweis: Helpdesk ist der Single Point of Contact f\u00fcr alle Anfragen
+3. Bitte um Ausf\u00fcllen des Helpdesk-Formulars (Ticket erstellt der 1st Level Support)
+4. Bitte um allgemeine, nicht-sensitive Angaben (z.B. betroffene Anwendung und Ger\u00e4tetyp)
 
 Nur die Antwort ausgeben, keine Metadaten.`,
-  escalation_required: `# Rolle "IT-Friend" – Sofortige Eskalation
-Die Benutzeranfrage erfordert wegen sensibler Inhalte / fehlender Rechte / defekter Systeme oder explizitem Ticket-Wunsch eine schnelle Übergabe an den 1st Level Support.
+  escalation_required: `# Rolle "IT-Friend" \u2013 Sofortige Eskalation
+Die Benutzeranfrage erfordert wegen sensibler Inhalte / fehlender Rechte / defekter Systeme oder explizitem Ticket-Wunsch eine schnelle \u00dcbergabe an den 1st Level Support.
 
 ## Ziel
-Antworte sehr kurz (<= 50 Wörter) und ermutige zur Ticket-Erstellung. Keine technischen Spekulationen. Keine sensiblen Daten. 
-WICHTIG: Antworte NUR auf IT-spezifische Anfragen. Wenn nicht IT: Knapp sagen "Ich beantworte ausschließlich IT-spezifische Anfragen." – sonst nichts.
+Antworte sehr kurz (<= 50 W\u00f6rter) und ermutige zur Ticket-Erstellung. Keine technischen Spekulationen. Keine sensiblen Daten. 
+WICHTIG: Antworte NUR auf IT-spezifische Anfragen. Wenn nicht IT: Knapp sagen "Ich beantworte ausschlie\u00dflich IT-spezifische Anfragen." \u2013 sonst nichts.
 
 ## Sprache
 Ermittle Sprache der letzten Benutzer-Nachricht (DE/EN/RU). Antworte in dieser Sprache. Falls unklar: Deutsch.
 
-## Struktur (eine knappe zusammenhängende Antwort, optional 1 Emoji):
-1. Kurzer Hinweis, dass das Thema manuelle Prüfung/Berechtigung verlangt.
-2. Hinweis: Helpdesk ist der Single Point of Contact für alle Anfragen.
-3. Bitte, das Helpdesk-Formular auszufüllen (Ticket erstellt der 1st Level Support).
+## Struktur (eine knappe zusammenh\u00e4ngende Antwort, optional 1 Emoji):
+1. Kurzer Hinweis, dass das Thema manuelle Pr\u00fcfung/Berechtigung verlangt.
+2. Hinweis: Helpdesk ist der Single Point of Contact f\u00fcr alle Anfragen.
+3. Bitte, das Helpdesk-Formular auszuf\u00fcllen (Ticket erstellt der 1st Level Support).
 4. Bitte um relevante Details (Screenshots, Fehlermeldung, Zeitpunkt).
 
 Nur die Antwort ausgeben.`,
   no_solution_found: `# Persona
-Du bist "IT-Friend" – freundlich, hilfsbereit, optimistisch und mit einer Prise Humor! Auch ohne passende Lösung in der Wissensbasis versuchst du zu helfen.
+Du bist "IT-Friend" \u2013 freundlich, hilfsbereit, optimistisch und mit einer Prise Humor! Auch ohne passende L\u00f6sung in der Wissensbasis versuchst du zu helfen.
 
 # Sprache
-Sprache spiegeln (DE/EN/RU). <= 120 Wörter + optional 1-2 Emojis.
+Sprache spiegeln (DE/EN/RU). <= 120 W\u00f6rter + optional 1-2 Emojis.
 
-# Verhalten Wenn Keine Lösung
-1. Freundliche, leicht humorvolle Begrüßung - zeige Verständnis ("Ah, ein Klassiker!" oder "Das kenne ich!")
-2. 2–3 allgemeine, aber sichere Lösungsvorschläge mit einem Augenzwinkern:
+# Verhalten Wenn Keine L\u00f6sung
+1. Freundliche, leicht humorvolle Begr\u00fc\u00dfung - zeige Verst\u00e4ndnis ("Ah, ein Klassiker!" oder "Das kenne ich!")
+2. 2\u20133 allgemeine, aber sichere L\u00f6sungsvorschl\u00e4ge mit einem Augenzwinkern:
    - Neustart ("Der gute alte 'Aus-und-wieder-an-Trick'!")
-   - Verbindung/Einstellungen prüfen
+   - Verbindung/Einstellungen pr\u00fcfen
    - Updates installieren
 3. Humorvoller aber positiver Hinweis auf Helpdesk als Single Point of Contact
-4. Bitte, das Helpdesk-Formular auszufüllen (Ticket erstellt der 1st Level Support)
-5. Frage nach Details für das Formular mit Ermutigung
+4. Bitte, das Helpdesk-Formular auszuf\u00fcllen (Ticket erstellt der 1st Level Support)
+5. Frage nach Details f\u00fcr das Formular mit Ermutigung
 
-Sei lebendiger, verwende mal deutsche Wörter wie "tja", "hmm", zeige Persönlichkeit! Keine sensiblen Daten erfragen.
+Sei lebendiger, verwende mal deutsche W\u00f6rter wie "tja", "hmm", zeige Pers\u00f6nlichkeit! Keine sensiblen Daten erfragen.
 
 # Ausgabe
 Nur die lebendige, humorvolle aber hilfreiche Antwort.`
@@ -262,10 +270,10 @@ Nur die lebendige, humorvolle aber hilfreiche Antwort.`
 
 const buildSolutionContext = (solutions) =>
   solutions.map((sol, i) =>
-    `Lösung ${i + 1}:
+    `L\u00f6sung ${i + 1}:
 Titel: ${sol.title}
 Problem: ${sol.problem}
-Lösung: ${sol.solution}
+L\u00f6sung: ${sol.solution}
 Kategorie: ${sol.category}
 ---`).join('\n\n');
 
@@ -273,13 +281,13 @@ const buildClassifierMessages = (userMessage) => ([
   {
     role: 'system',
     content: [
-      'Du bist ein hilfsbereiter Intent-Klassifikator für IT-Support.',
-      'Ziel: Bestimme, ob die NACHRICHT ein IT-spezifisches Anliegen sein KÖNNTE.',
+      'Du bist ein hilfsbereiter Intent-Klassifikator f\u00fcr IT-Support.',
+      'Ziel: Bestimme, ob die NACHRICHT ein IT-spezifisches Anliegen sein K\u00d6NNTE.',
       'IT umfasst: Software, Hardware, Lizenzen, Netzwerk, E-Mail, Computer, Support, technische Hilfe.',
-      'WICHTIG: Begrüßungen und Fragen nach Bot-Funktionen sind IMMER IT-relevant.',
-      'Sei großzügig - im Zweifel eher IT als NON-IT.',
+      'WICHTIG: Begr\u00fc\u00dfungen und Fragen nach Bot-Funktionen sind IMMER IT-relevant.',
+      'Sei gro\u00dfz\u00fcgig - im Zweifel eher IT als NON-IT.',
       'Antworte EXAKT mit: IT oder NON-IT.',
-      'Keine Erklärungen.'
+      'Keine Erkl\u00e4rungen.'
     ].join('\n')
   },
   { role: 'user', content: `NACHRICHT:\n"""${userMessage}"""` }
@@ -298,11 +306,11 @@ class AIService {
     return detectLang(text);
   }
 
-  /** Intent-Heuristik + LLM-Fallback (früh & konservativ) */
+  /** Intent-Heuristik + LLM-Fallback (fr\u00fch & konservativ) */
   async isITIntent(userMessage, conversationHistory = []) {
     const text = normalize(userMessage);
 
-    // 1) Begrüßung/Funktionsfrage => immer IT
+    // 1) Begr\u00fc\u00dfung/Funktionsfrage => immer IT
     if (matchAny(userMessage, GREETING_PATTERNS) || matchAny(userMessage, FUNCTION_PATTERNS)) return true;
 
     // 2) Keyword-Heuristik
@@ -364,7 +372,7 @@ class AIService {
 
       return dedupeById([...titleMatches, ...problemMatches, ...keywordMatches]).slice(0, limit);
     } catch (error) {
-      console.error('[AI-Service] Fehler bei der Lösungssuche:', error);
+      console.error('[AI-Service] Fehler bei der L\u00f6sungssuche:', error);
       return [];
     }
   }
@@ -373,16 +381,16 @@ class AIService {
   async generateResponse(userMessage, conversationHistory = []) {
     try {
 
-      await AIRequestLog.create({ prompt: userMessage }); // Logging request
+      await AIRequestLog.create({ prompt: sanitizePromptForLog(userMessage) }); // Logging request
       // 0) Domain-Gate
       const isIT = await this.isITIntent(userMessage, conversationHistory);
       if (!isIT) {
         const lang = this.detectLang(userMessage);
         const msg = {
-          de: 'Hallo! 😊 Ich bin auf IT-Themen spezialisiert. Wenn Sie Fragen zu Software, Hardware, Netzwerk oder anderen IT-Problemen haben, helfe ich gerne weiter!',
-          en: "Hello! 😊 I specialize in IT topics. If you have questions about software, hardware, networks, or other IT issues, I'd be happy to help!",
-          ru: 'Привет! 😊 Я специализируюсь на ИТ-вопросах. Если у вас есть вопросы по софту, железу, сетям или другим ИТ-проблемам, буду рад помочь!'
-        }[lang] || 'Hallo! 😊 Ich bin auf IT-Themen spezialisiert. Wenn Sie Fragen zu Software, Hardware, Netzwerk oder anderen IT-Problemen haben, helfe ich gerne weiter!';
+          de: 'Hallo! \u{1f60a} Ich bin auf IT-Themen spezialisiert. Wenn Sie Fragen zu Software, Hardware, Netzwerk oder anderen IT-Problemen haben, helfe ich gerne weiter!',
+          en: "Hello! \u{1f60a} I specialize in IT topics. If you have questions about software, hardware, networks, or other IT issues, I'd be happy to help!",
+          ru: '\u041f\u0440\u0438\u0432\u0435\u0442! \u{1f60a} \u042f \u0441\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0437\u0438\u0440\u0443\u044e\u0441\u044c \u043d\u0430 \u0418\u0422-\u0432\u043e\u043f\u0440\u043e\u0441\u0430\u0445. \u0415\u0441\u043b\u0438 \u0443 \u0432\u0430\u0441 \u0435\u0441\u0442\u044c \u0432\u043e\u043f\u0440\u043e\u0441\u044b \u043f\u043e \u0441\u043e\u0444\u0442\u0443, \u0436\u0435\u043b\u0435\u0437\u0443, \u0441\u0435\u0442\u044f\u043c \u0438\u043b\u0438 \u0434\u0440\u0443\u0433\u0438\u043c \u0418\u0422-\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430\u043c, \u0431\u0443\u0434\u0443 \u0440\u0430\u0434 \u043f\u043e\u043c\u043e\u0447\u044c!'
+        }[lang] || 'Hallo! \u{1f60a} Ich bin auf IT-Themen spezialisiert. Wenn Sie Fragen zu Software, Hardware, Netzwerk oder anderen IT-Problemen haben, helfe ich gerne weiter!';
         return {
           type: 'out_of_scope',
           message: msg,
@@ -398,7 +406,7 @@ class AIService {
       const isGreeting = matchAny(userMessage, GREETING_PATTERNS);
       const isFunctionQuestion = matchAny(userMessage, FUNCTION_PATTERNS);
 
-      // 1) Lösungen nur suchen, wenn sinnvoll
+      // 1) L\u00f6sungen nur suchen, wenn sinnvoll
       const shouldSearch =
         !isGreeting &&
         !isFunctionQuestion &&
@@ -412,7 +420,7 @@ class AIService {
       // 2) Prompt-Typ bestimmen
       let responseType;
       let systemPrompt;
-      let relatedSolutions = [];
+      let relatedSolutions = []; // f\u00fcr Logging
       let directResponse = null; // for predefined random responses
 
       if (isGreeting || isFunctionQuestion) {
@@ -436,31 +444,31 @@ class AIService {
         relatedSolutions = solutions;
         const solutionsContext = buildSolutionContext(solutions);
         systemPrompt = `# Persona & Stil
-Du bist "IT-Friend", ein freundlicher, hilfsbereiter und leicht humorvoller KI-Assistent der ScooTeq GmbH. Du bist begeistert zu helfen und erklärst Dinge verständlich, positiv und mit einem Augenzwinkern! 😊
+Du bist "IT-Friend", ein freundlicher, hilfsbereiter und leicht humorvoller KI-Assistent der ScooTeq GmbH. Du bist begeistert zu helfen und erkl\u00e4rst Dinge verst\u00e4ndlich, positiv und mit einem Augenzwinkern! \u{1f60a}
 
 # Sprache
-Erkenne automatisch die Sprache der letzten Benutzer-Nachricht (DE bevorzugt; EN/RU möglich). Antworte in derselben Sprache. Max. 130 Wörter + optional 1-2 Emojis.
+Erkenne automatisch die Sprache der letzten Benutzer-Nachricht (DE bevorzugt; EN/RU m\u00f6glich). Antworte in derselben Sprache. Max. 130 W\u00f6rter + optional 1-2 Emojis.
 
-# Kontext (interne Wissensbasis – NICHT wortgleich wiederholen)
+# Kontext (interne Wissensbasis \u2013 NICHT wortgleich wiederholen)
 ${solutionsContext}
 
 # Wichtige Regeln
-1. Sei freundlich, optimistisch und zeige Persönlichkeit - verwende mal "Ah!", "Aha!", "Das kenne ich!"
-2. Lösung NIEMALS wortgleich kopieren – stets umformulieren und vereinfachen mit eigenem Stil
-3. Klare Schritt-für-Schritt Anleitung mit gelegentlichen aufmunternden Kommentaren:
-   1. Öffne ... (manchmal mit "Zuerst mal..." oder "Los geht's...")
+1. Sei freundlich, optimistisch und zeige Pers\u00f6nlichkeit - verwende mal "Ah!", "Aha!", "Das kenne ich!"
+2. L\u00f6sung NIEMALS wortgleich kopieren \u2013 stets umformulieren und vereinfachen mit eigenem Stil
+3. Klare Schritt-f\u00fcr-Schritt Anleitung mit gelegentlichen aufmunternden Kommentaren:
+   1. \u00d6ffne ... (manchmal mit "Zuerst mal..." oder "Los geht's...")
    2. Klicke auf ... 
-   3. Prüfe ob ... ("Schauen wir mal ob...")
-4. Bei teilweiser Übereinstimmung: "Das könnte der Schuldige sein!" oder "Probieren wir mal..." + Schritte + Hinweis auf Helpdesk-Formular
-5. Helpdesk ist der Single Point of Contact; Ticket-Erstellung übernimmt der 1st Level Support
+   3. Pr\u00fcfe ob ... ("Schauen wir mal ob...")
+4. Bei teilweiser \u00dcbereinstimmung: "Das k\u00f6nnte der Schuldige sein!" oder "Probieren wir mal..." + Schritte + Hinweis auf Helpdesk-Formular
+5. Helpdesk ist der Single Point of Contact; Ticket-Erstellung \u00fcbernimmt der 1st Level Support
 6. Keine sensiblen Daten erfragen, aber freundlich darauf hinweisen
-7. Bei Unsicherheit lebendige Formulierungen: "Hmm, das ist knifflig!" + Bitte, das Helpdesk-Formular auszufüllen
+7. Bei Unsicherheit lebendige Formulierungen: "Hmm, das ist knifflig!" + Bitte, das Helpdesk-Formular auszuf\u00fcllen
 
 # Ausgabe-Stil (variiere gelegentlich):
 - "Ah, das kenne ich! Lass uns das angehen:" 
 - "Perfekt, da kann ich helfen! Probieren Sie mal:"
-- "Das ist ein Klassiker! Hier die Lösung:"
-- "Aha! Da haben wir den Übeltäter! So geht's:"
+- "Das ist ein Klassiker! Hier die L\u00f6sung:"
+- "Aha! Da haben wir den \u00dcbelt\u00e4ter! So geht's:"
 
 # Ausgabe
 Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
@@ -474,7 +482,7 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
       let tokensUsed = 0;
 
       if (directResponse) {
-        // Verwenden vordefinierter zufälliger Antwort
+        // Verwenden vordefinierter zuf\u00e4lliger Antwort
         aiResponse = directResponse;
       } else {
         // Verwenden OpenAI zur Antwortgenerierung
@@ -494,7 +502,7 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
         tokensUsed = completion.usage?.total_tokens || 0;
       }
 
-      // 3b) Datenschutz / Datenqualität: Antwort blockieren, falls sensibel
+      // 3b) Datenschutz / Datenqualit\u00e4t: Antwort blockieren, falls sensibel
       const responseLower = normalize(aiResponse);
       const responseContainsSensitive =
         containsSensitiveData(aiResponse) || LICENSE_KEYWORDS.some((k) => responseLower.includes(k));
@@ -506,10 +514,10 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
       if (shouldBlockSensitiveResponse) {
         const lang = this.detectLang(userMessage);
         const msg = {
-          de: 'Entschuldigung, dabei kann ich nicht helfen. Bitte füllen Sie das Helpdesk-Formular aus; der 1st Level Support übernimmt die weitere Bearbeitung.',
+          de: 'Entschuldigung, dabei kann ich nicht helfen. Bitte f\u00fcllen Sie das Helpdesk-Formular aus; der 1st Level Support \u00fcbernimmt die weitere Bearbeitung.',
           en: 'Sorry, I cannot help with that. Please fill out the helpdesk form; 1st level support will handle the request.',
-          ru: 'Извините, с этим я помочь не могу. Пожалуйста, заполните форму helpdesk; 1st level support обработает запрос.'
-        }[lang] || 'Entschuldigung, dabei kann ich nicht helfen. Bitte füllen Sie das Helpdesk-Formular aus; der 1st Level Support übernimmt die weitere Bearbeitung.';
+          ru: '\u0418\u0437\u0432\u0438\u043d\u0438\u0442\u0435, \u0441 \u044d\u0442\u0438\u043c \u044f \u043f\u043e\u043c\u043e\u0447\u044c \u043d\u0435 \u043c\u043e\u0433\u0443. \u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0437\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0444\u043e\u0440\u043c\u0443 helpdesk; 1st level support \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0437\u0430\u043f\u0440\u043e\u0441.'
+        }[lang] || 'Entschuldigung, dabei kann ich nicht helfen. Bitte f\u00fcllen Sie das Helpdesk-Formular aus; der 1st Level Support \u00fcbernimmt die weitere Bearbeitung.';
         return {
           type: 'escalation_required',
           message: msg,
@@ -549,14 +557,14 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
       console.error('[AI-Service] Fehler bei der Antwortgenerierung:', error);
       return {
         type: 'error',
-        message: 'Entschuldigung, es gab einen technischen Fehler. Bitte versuchen Sie es erneut oder erstellen Sie ein Support-Ticket für weitere Hilfe.',
+        message: 'Entschuldigung, es gab einen technischen Fehler. Bitte versuchen Sie es erneut oder erstellen Sie ein Support-Ticket f\u00fcr weitere Hilfe.',
         shouldCreateTicket: true,
         metadata: { error: error.message }
       };
     }
   }
 
-  /** Priorität bestimmen (einfaches Single-Label) */
+  /** Priorit\u00e4t bestimmen (einfaches Single-Label) */
   async analyzePriority(message) {
     try {
       const completion = await this.openai.chat.completions.create({
@@ -567,7 +575,7 @@ Nur die lebendige, humorvolle aber professionell hilfreiche Antwort.`;
         presence_penalty: 0.0,
         messages: [{
           role: 'system',
-          content: `Analysiere die Priorität dieses Problems basierend auf:
+          content: `Analysiere die Priorit\u00e4t dieses Problems basierend auf:
 - Auswirkung auf die Arbeit (Low/Medium/High)
 - Dringlichkeit (Low/Medium/High)
 - Anzahl betroffener Benutzer
@@ -583,7 +591,7 @@ Antworte nur mit: Low, Medium oder High`
       const out = (completion.choices[0]?.message?.content || '').trim();
       return ['Low', 'Medium', 'High'].includes(out) ? out : 'Medium';
     } catch (e) {
-      console.error('[AI-Service] Fehler bei Prioritätsanalyse:', e);
+      console.error('[AI-Service] Fehler bei Priorit\u00e4tsanalyse:', e);
       return 'Medium';
     }
   }
@@ -600,10 +608,10 @@ Antworte nur mit: Low, Medium oder High`
         messages: [{
           role: 'system',
           content: `Kategorisiere dieses Problem in eine der folgenden Kategorien:
-- Hardware: Physische Geräte, Computer, Drucker, etc.
+- Hardware: Physische Ger\u00e4te, Computer, Drucker, etc.
 - Software: Programme, Apps, Betriebssysteme
 - Netzwerk: Internet, WLAN, Verbindungsprobleme
-- Account: Login-Probleme, Passwörter, Benutzerkonten
+- Account: Login-Probleme, Passw\u00f6rter, Benutzerkonten
 - Email: E-Mail-Probleme, Outlook, etc.
 - Sonstiges: Alles andere
 
@@ -662,5 +670,5 @@ Antworte nur mit der Kategorie.`
 }
 
 export default new AIService();
-// Optional: benannte Exporte für Tests (keine Breaking Changes)
+// Optional: benannte Exporte f\u00fcr Tests (keine Breaking Changes)
 export { detectLang as _detectLang, matchAny as _matchAny, countHits as _countHits };
