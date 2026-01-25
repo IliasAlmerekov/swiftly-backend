@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
   },
   manager: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     default: null,
   },
   country: {
@@ -72,8 +72,8 @@ const userSchema = new mongoose.Schema({
     url: {
       type: String,
       default: null,
-    }
-  }
+    },
+  },
 });
 
 userSchema.pre("save", async function (next) {

@@ -1,11 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 
-const {
-  CLOUDINARY_URL,
-  CLOUD_NAME,
-  CLOUD_API_KEY,
-  CLOUD_API_SECRET,
-} = process.env;
+const { CLOUDINARY_URL, CLOUD_NAME, CLOUD_API_KEY, CLOUD_API_SECRET } =
+  process.env;
 
 const isTest = process.env.NODE_ENV === "test";
 

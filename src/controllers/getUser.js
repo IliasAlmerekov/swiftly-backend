@@ -28,7 +28,11 @@ export const createUserController = ({ userService }) => ({
   updateUserProfileById: asyncHandler(async (req, res) => {
     const { userId } = validateDto(userIdParamDto, req.params);
     const updateData = validateDto(userProfileUpdateDto, req.body);
-    const user = await userService.updateUserProfileById(req.user, userId, updateData);
+    const user = await userService.updateUserProfileById(
+      req.user,
+      userId,
+      updateData
+    );
     res.status(200).json(user);
   }),
 

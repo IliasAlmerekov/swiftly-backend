@@ -14,7 +14,7 @@ export const getRedisClient = async () => {
   if (connecting) return connecting;
 
   const instance = createClient({ url: redisUrl });
-  instance.on("error", (err) => {
+  instance.on("error", err => {
     console.error("Redis error:", err);
   });
 

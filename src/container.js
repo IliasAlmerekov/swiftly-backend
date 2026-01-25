@@ -16,7 +16,12 @@ const ticketRepository = new TicketRepository({ Ticket });
 const userRepository = new UserRepository({ User });
 const solutionRepository = new SolutionRepository({ Solution });
 
-const ticketService = new TicketService({ ticketRepository, userRepository, cloudinary, fs });
+const ticketService = new TicketService({
+  ticketRepository,
+  userRepository,
+  cloudinary,
+  fs,
+});
 const userService = new UserService({ userRepository });
 const solutionService = new SolutionService({ solutionRepository });
 

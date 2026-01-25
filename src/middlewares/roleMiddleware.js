@@ -16,7 +16,11 @@ const requireRoleOrSelf = (roles = []) => {
       return next();
     }
     const { userId } = req.params;
-    if (userId && req.user._id && userId.toString() === req.user._id.toString()) {
+    if (
+      userId &&
+      req.user._id &&
+      userId.toString() === req.user._id.toString()
+    ) {
       return next();
     }
     return res.status(403).json({ message: "Access denied" });

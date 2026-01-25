@@ -84,7 +84,10 @@ class SolutionService {
       throw error;
     }
 
-    const updatedSolution = await this.solutionRepository.updateById(id, updateData);
+    const updatedSolution = await this.solutionRepository.updateById(
+      id,
+      updateData
+    );
     if (!updatedSolution) {
       const error = new Error("Lösung nicht gefunden");
       error.status = 404;
@@ -116,7 +119,10 @@ class SolutionService {
       throw error;
     }
 
-    const solutions = await this.solutionRepository.search(query, parseInt(limit, 10));
+    const solutions = await this.solutionRepository.search(
+      query,
+      parseInt(limit, 10)
+    );
     return {
       query,
       solutions,
@@ -125,7 +131,9 @@ class SolutionService {
   }
 
   async getSolutionStats() {
-    const totalSolutions = await this.solutionRepository.count({ isActive: true });
+    const totalSolutions = await this.solutionRepository.count({
+      isActive: true,
+    });
     const categoryStats = await this.solutionRepository.aggregate([
       { $match: { isActive: true } },
       { $group: { _id: "$category", count: { $sum: 1 } } },

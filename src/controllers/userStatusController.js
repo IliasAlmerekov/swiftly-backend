@@ -39,21 +39,21 @@ export const updateUserActivity = asyncHandler(async (req, res) => {
 
 // Utility function to mark users offline if they haven't been seen for a while
 export const markInactiveUsersOffline = async () => {
-    try {
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
-        
-        await User.updateMany(
-            { 
-                isOnline: true,
-                lastSeen: { $lt: fiveMinutesAgo }
-            },
-            { 
-                isOnline: false 
-            }
-        );
-        
-        console.log('Inactive users marked offline');
-    } catch (error) {
-        console.error('Error marking inactive users offline:', error);
-    }
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
+
+    await User.updateMany(
+      {
+        isOnline: true,
+        lastSeen: { $lt: fiveMinutesAgo },
+      },
+      {
+        isOnline: false,
+      }
+    );
+
+    console.log("Inactive users marked offline");
+  } catch (error) {
+    console.error("Error marking inactive users offline:", error);
+  }
 };

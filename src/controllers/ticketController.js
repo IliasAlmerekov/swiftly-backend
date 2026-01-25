@@ -30,7 +30,11 @@ export const createTicketController = ({ ticketService }) => ({
   addComment: asyncHandler(async (req, res) => {
     const { ticketId } = validateDto(ticketIdParamDto, req.params);
     const { content } = validateDto(ticketCommentDto, req.body);
-    const updatedTicket = await ticketService.addComment(ticketId, content, req.user);
+    const updatedTicket = await ticketService.addComment(
+      ticketId,
+      content,
+      req.user
+    );
     res.status(201).json(updatedTicket);
   }),
 
@@ -53,14 +57,22 @@ export const createTicketController = ({ ticketService }) => ({
   updateTicket: asyncHandler(async (req, res) => {
     const { ticketId } = validateDto(ticketIdParamDto, req.params);
     const updateData = validateDto(ticketUpdateDto, req.body);
-    const updatedTicket = await ticketService.updateTicket(ticketId, updateData, req.user);
+    const updatedTicket = await ticketService.updateTicket(
+      ticketId,
+      updateData,
+      req.user
+    );
     res.status(200).json(updatedTicket);
   }),
 
   triageTicket: asyncHandler(async (req, res) => {
     const { ticketId } = validateDto(ticketIdParamDto, req.params);
     const triageData = validateDto(ticketTriageDto, req.body);
-    const updatedTicket = await ticketService.triageTicket(ticketId, triageData, req.user);
+    const updatedTicket = await ticketService.triageTicket(
+      ticketId,
+      triageData,
+      req.user
+    );
     res.status(200).json(updatedTicket);
   }),
 
@@ -76,7 +88,11 @@ export const createTicketController = ({ ticketService }) => ({
 
   uploadTicketAttachment: asyncHandler(async (req, res) => {
     const { ticketId } = validateDto(ticketIdParamDto, req.params);
-    const attachments = await ticketService.uploadAttachment(ticketId, req.file, req.user);
+    const attachments = await ticketService.uploadAttachment(
+      ticketId,
+      req.file,
+      req.user
+    );
     res.status(201).json({ success: true, attachments });
   }),
 });

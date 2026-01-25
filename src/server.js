@@ -21,7 +21,7 @@ const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = (process.env.CORS_ORIGIN || "")
   .split(",")
-  .map((origin) => origin.trim())
+  .map(origin => origin.trim())
   .filter(Boolean);
 
 const corsOptions = {
@@ -31,19 +31,23 @@ const corsOptions = {
       return callback(null, allowedOrigins.includes(origin));
     }
     if (!isProduction) {
-      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(
+        origin
+      );
       return callback(null, isLocalhost);
     }
     return callback(new Error("Not allowed by CORS"));
   },
 };
 
-app.use(helmet({
-  contentSecurityPolicy: false,
-  hsts: isProduction
-    ? { maxAge: 15552000, includeSubDomains: true, preload: true }
-    : false,
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    hsts: isProduction
+      ? { maxAge: 15552000, includeSubDomains: true, preload: true }
+      : false,
+  })
+);
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -86,10 +90,10 @@ app.get("/", (req, res) => {
 
 // Health check endpoint for Render
 app.get("/api/health", (req, res) => {
-  res.status(200).json({ 
-    status: "OK", 
+  res.status(200).json({
+    status: "OK",
     timestamp: new Date().toISOString(),
-    service: "ScooTeq Helpdesk Backend"
+    service: "ScooTeq Helpdesk Backend",
   });
 });
 
@@ -97,15 +101,15 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     const PORT = process.env.PORT || 3001;
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`ScooTeq Helpdesk Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+
       // Start cleanup job for inactive users (every 5 minutes)
       setInterval(markInactiveUsersOffline, 5 * 60 * 1000);
     });
   })
-  .catch((err) => {
+  .catch(err => {
     console.error("Database connection error:", err);
     process.exit(1);
   });
