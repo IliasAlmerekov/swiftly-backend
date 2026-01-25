@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import process from "process";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 
 import authRoutes from "./routes/authRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
@@ -11,15 +13,55 @@ import aiRoutes from "./routes/aiRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { markInactiveUsersOffline } from "./controllers/userStatusController.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+const isProduction = process.env.NODE_ENV === "production";
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length > 0) {
+      return callback(null, allowedOrigins.includes(origin));
+    }
+    if (!isProduction) {
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+      return callback(null, isLocalhost);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
+};
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  hsts: isProduction
+    ? { maxAge: 15552000, includeSubDomains: true, preload: true }
+    : false,
+}));
+app.use(cors(corsOptions));
 app.use(express.json());
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+
 // Authentifizierungs-Routen
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 
 // Ticket-Routen
 app.use("/api/tickets", ticketRoutes);
@@ -28,13 +70,15 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/solutions", solutionRoutes);
 
 // AI-Routen
-app.use("/api/ai", aiRoutes);
+app.use("/api/ai", aiLimiter, aiRoutes);
 
 // User-Routen
 app.use("/api/users", userRoutes);
 
 // Upload-Routen
 app.use("/api/upload", uploadRoutes);
+
+app.use(errorHandler);
 
 app.get("/", (req, res) => {
   res.send("API live");

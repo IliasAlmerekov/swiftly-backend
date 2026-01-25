@@ -1,8 +1,11 @@
 import express from 'express';
-import solutionController from '../controllers/solutionController.js';
+import { createSolutionController } from "../controllers/solutionController.js";
+import container from "../container.js";
 import authMiddleware from '../middlewares/authMiddleware.js';
+import { requireRole } from "../middlewares/roleMiddleware.js";
 
 const router = express.Router();
+const solutionController = createSolutionController(container);
 
 // Middleware für alle Solution Routes - Authentifizierung erforderlich
 router.use(authMiddleware);
@@ -28,7 +31,7 @@ router.get('/search', solutionController.searchSolutions);
  * @desc    Statistiken über Lösungen abrufen
  * @access  Private (normalerweise nur für Admins)
  */
-router.get('/stats', solutionController.getSolutionStats);
+router.get('/stats', requireRole(["support1", "admin"]), solutionController.getSolutionStats);
 
 /**
  * @route   GET /api/solutions/:id
@@ -44,7 +47,7 @@ router.get('/:id', solutionController.getSolutionById);
  * @body    title, problem, solution, keywords, category, priority
  * @access  Private (normalerweise nur Support-Mitarbeiter)
  */
-router.post('/', solutionController.createSolution);
+router.post('/', requireRole(["support1", "admin"]), solutionController.createSolution);
 
 /**
  * @route   PUT /api/solutions/:id
@@ -53,7 +56,7 @@ router.post('/', solutionController.createSolution);
  * @body    Felder die aktualisiert werden sollen
  * @access  Private (normalerweise nur Support-Mitarbeiter oder Creator)
  */
-router.put('/:id', solutionController.updateSolution);
+router.put('/:id', requireRole(["support1", "admin"]), solutionController.updateSolution);
 
 /**
  * @route   DELETE /api/solutions/:id
@@ -61,6 +64,6 @@ router.put('/:id', solutionController.updateSolution);
  * @param   id - MongoDB ObjectId der Lösung
  * @access  Private (normalerweise nur Admins)
  */
-router.delete('/:id', solutionController.deleteSolution);
+router.delete('/:id', requireRole(["support1", "admin"]), solutionController.deleteSolution);
 
 export default router;
