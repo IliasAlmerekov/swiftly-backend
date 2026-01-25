@@ -1,52 +1,41 @@
-import User from '../models/userModel.js';
+import User from "../models/userModel.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 // Set user online status
-export const setUserOnline = async (req, res) => {
-    try {
-        const userId = req.user.id; // From auth middleware
-        
-        await User.findByIdAndUpdate(userId, {
-            isOnline: true,
-            lastSeen: new Date()
-        });
+export const setUserOnline = asyncHandler(async (req, res) => {
+  const userId = req.user.id; // From auth middleware
 
-        res.json({ message: 'User status updated to online' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+  await User.findByIdAndUpdate(userId, {
+    isOnline: true,
+    lastSeen: new Date(),
+  });
+
+  res.json({ message: "User status updated to online" });
+});
 
 // Set user offline status
-export const setUserOffline = async (req, res) => {
-    try {
-        const userId = req.user.id; // From auth middleware
-        
-        await User.findByIdAndUpdate(userId, {
-            isOnline: false,
-            lastSeen: new Date()
-        });
+export const setUserOffline = asyncHandler(async (req, res) => {
+  const userId = req.user.id; // From auth middleware
 
-        res.json({ message: 'User status updated to offline' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+  await User.findByIdAndUpdate(userId, {
+    isOnline: false,
+    lastSeen: new Date(),
+  });
+
+  res.json({ message: "User status updated to offline" });
+});
 
 // Update user activity (heartbeat)
-export const updateUserActivity = async (req, res) => {
-    try {
-        const userId = req.user.id; // From auth middleware
-        
-        await User.findByIdAndUpdate(userId, {
-            isOnline: true,
-            lastSeen: new Date()
-        });
+export const updateUserActivity = asyncHandler(async (req, res) => {
+  const userId = req.user.id; // From auth middleware
 
-        res.json({ message: 'User activity updated' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+  await User.findByIdAndUpdate(userId, {
+    isOnline: true,
+    lastSeen: new Date(),
+  });
+
+  res.json({ message: "User activity updated" });
+});
 
 // Utility function to mark users offline if they haven't been seen for a while
 export const markInactiveUsersOffline = async () => {

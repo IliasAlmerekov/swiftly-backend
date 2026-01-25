@@ -32,6 +32,11 @@ const ticketSchema = new mongoose.Schema(
       enum: ["low", "medium", "high"],
       default: "medium",
     },
+    category: {
+      type: String,
+      enum: ["Hardware", "Software", "Network", "Account", "Email", "Other"],
+      default: "Other",
+    },
     description: {
       type: String,
       required: true,
@@ -55,6 +60,15 @@ const ticketSchema = new mongoose.Schema(
       enum: ["open", "in-progress", "resolved", "closed"],
       default: "open",
     },
+    attachments: [
+      {
+        public_id: { type: String, required: true },
+        url: { type: String, required: true },
+        mime: { type: String, default: null },
+        size: { type: Number, default: null },
+        originalName: { type: String, default: null },
+      },
+    ],
     // Comments array as subdocuments
     comments: [commentSchema],
   },

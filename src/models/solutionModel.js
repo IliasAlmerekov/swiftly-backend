@@ -42,16 +42,8 @@ const solutionSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
-});
+}, { timestamps: true });
 
 // Index für bessere Suchperformance
 solutionSchema.index({ title: 'text', problem: 'text', solution: 'text', keywords: 'text' }, {
@@ -62,10 +54,5 @@ solutionSchema.index({ category: 1 });
 solutionSchema.index({ isActive: 1, updatedAt: -1 });
 solutionSchema.index({ keywords: 1, isActive: 1 });
 
-// Middleware um updatedAt automatisch zu setzen
-solutionSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
 
 export default mongoose.model('Solution', solutionSchema);
