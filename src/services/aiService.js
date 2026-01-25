@@ -14,7 +14,7 @@ import {
 /** ---------------------- Konstante Konfiguration & Muster ------------------- */
 const DEFAULT_CONFIG = {
   model: "gpt-4o-mini",
-  maxTokens: 150,
+  maxTokens: 220,
   temperature: 0.7,
   maxSolutionsInContext: 3,
   domainGate: {
@@ -487,7 +487,7 @@ class AIService {
   }
 
   /** Antwortgenerierung (Hauptfluss) */
-  async generateResponse(userMessage, conversationHistory = []) {
+  async generateResponse(userMessage, conversationHistory = [], summary = "") {
     try {
       await AIRequestLog.create({ prompt: sanitizePromptForLog(userMessage) }); // Logging request
       // 0) Domain-Gate
