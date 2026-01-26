@@ -2,6 +2,7 @@
 import OpenAI from "openai";
 import AIRequestLog from "../models/aiLogs.js";
 import Solution from "../models/solutionModel.js";
+import { config } from "../config/env.js";
 import {
   GREETING_RESPONSES,
   FUNCTION_RESPONSES,
@@ -371,7 +372,7 @@ const detectLang = text => {
 /** ---------------------- Service-Klasse ------------------------------------ */
 class AIService {
   constructor() {
-    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this.openai = new OpenAI({ apiKey: config.openaiApiKey });
     this.config = { ...DEFAULT_CONFIG };
     this.IT_KEYWORDS = IT_KEYWORDS;
   }
@@ -487,7 +488,7 @@ class AIService {
   }
 
   /** Antwortgenerierung (Hauptfluss) */
-  async generateResponse(userMessage, conversationHistory = [], summary = "") {
+  async generateResponse(userMessage, conversationHistory = [], _summary = "") {
     try {
       await AIRequestLog.create({ prompt: sanitizePromptForLog(userMessage) }); // Logging request
       // 0) Domain-Gate
@@ -751,7 +752,7 @@ Antworte nur mit der Kategorie.`,
 
   /** Konfig & Verbindung */
   isConfigured() {
-    return !!process.env.OPENAI_API_KEY;
+    return Boolean(config.openaiApiKey);
   }
 
   async testConnection() {

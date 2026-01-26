@@ -1,10 +1,10 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import dotenv from "dotenv";
 import process from "process";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
 
 import authRoutes from "./routes/authRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
@@ -14,12 +14,14 @@ import userRoutes from "./routes/userRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { markInactiveUsersOffline } from "./controllers/userStatusController.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
-
-dotenv.config();
+import { notFound } from "./middlewares/notFound.js";
+import { requestLogger } from "./middlewares/requestLogger.js";
+import { config } from "./config/env.js";
+import logger from "./utils/logger.js";
+import { openApiSpec } from "./utils/openapi.js";
 
 const app = express();
-const isProduction = process.env.NODE_ENV === "production";
-const allowedOrigins = (process.env.CORS_ORIGIN || "")
+const allowedOrigins = (config.corsOrigin || "")
   .split(",")
   .map(origin => origin.trim())
   .filter(Boolean);
@@ -30,7 +32,7 @@ const corsOptions = {
     if (allowedOrigins.length > 0) {
       return callback(null, allowedOrigins.includes(origin));
     }
-    if (!isProduction) {
+    if (!config.isProduction) {
       const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(
         origin
       );
@@ -40,16 +42,30 @@ const corsOptions = {
   },
 };
 
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    hsts: isProduction
-      ? { maxAge: 15552000, includeSubDomains: true, preload: true }
-      : false,
-  })
-);
+app.disable("x-powered-by");
+app.use(requestLogger);
+const baseHelmet = helmet({
+  contentSecurityPolicy: false,
+  hsts: config.isProduction
+    ? { maxAge: 15552000, includeSubDomains: true, preload: true }
+    : false
+});
+const apiCsp = helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'none'"],
+    baseUri: ["'none'"],
+    frameAncestors: ["'none'"],
+    formAction: ["'none'"]
+  }
+});
+
+app.use(baseHelmet);
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/docs")) return next();
+  return apiCsp(req, res, next);
+});
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: config.requestBodyLimit }));
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -82,8 +98,6 @@ app.use("/api/users", userRoutes);
 // Upload-Routen
 app.use("/api/upload", uploadRoutes);
 
-app.use(errorHandler);
-
 app.get("/", (req, res) => {
   res.send("API live");
 });
@@ -97,19 +111,65 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.get("/api/docs.json", (req, res) => {
+  res.json(openApiSpec);
+});
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
+
+app.use(notFound);
+app.use(errorHandler);
+
+let server;
+let cleanupInterval;
+let shuttingDown = false;
+
+const shutdown = async (signal, error) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  if (error) {
+    logger.error({ err: error }, "Shutdown due to error");
+  }
+  logger.info({ signal }, "Shutting down");
+
+  if (cleanupInterval) clearInterval(cleanupInterval);
+
+  const forceExit = setTimeout(() => {
+    logger.error("Forcing shutdown after timeout");
+    process.exit(1);
+  }, 10000);
+
+  try {
+    if (server) {
+      await new Promise(resolve => server.close(resolve));
+    }
+    await mongoose.connection.close(false);
+  } catch (closeError) {
+    logger.error({ err: closeError }, "Error during shutdown");
+  } finally {
+    clearTimeout(forceExit);
+    process.exit(error ? 1 : 0);
+  }
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("unhandledRejection", err => shutdown("unhandledRejection", err));
+process.on("uncaughtException", err => shutdown("uncaughtException", err));
+
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(config.mongoUri)
   .then(() => {
-    const PORT = process.env.PORT || 3001;
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`ScooTeq Helpdesk Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    server = app.listen(config.port, "0.0.0.0", () => {
+      logger.info({ port: config.port }, "ScooTeq Helpdesk Server started");
+      logger.info({ env: config.nodeEnv }, "Environment");
 
       // Start cleanup job for inactive users (every 5 minutes)
-      setInterval(markInactiveUsersOffline, 5 * 60 * 1000);
+      cleanupInterval = setInterval(markInactiveUsersOffline, 5 * 60 * 1000);
     });
   })
   .catch(err => {
-    console.error("Database connection error:", err);
-    process.exit(1);
+    logger.error({ err }, "Database connection error");
+    shutdown("startup", err);
   });
