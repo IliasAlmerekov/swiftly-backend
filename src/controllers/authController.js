@@ -1,17 +1,14 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import process from "process";
 import { validateDto } from "../validation/validateDto.js";
 import { authLoginDto, authRegisterDto } from "../validation/schemas.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-dotenv.config();
+import { config } from "../config/env.js";
 
-const signToken = (id, role, email, name) => {
-  return jwt.sign({ id, role, email, name }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES || "12h",
+const signToken = (id, role, email, name) =>
+  jwt.sign({ id, role, email, name }, config.jwtSecret, {
+    expiresIn: config.jwtExpires
   });
-};
 
 // Registrierung eines neuen Benutzers
 // Gibt ein Token und die User-ID zurück

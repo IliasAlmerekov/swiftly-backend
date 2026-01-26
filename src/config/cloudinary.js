@@ -1,9 +1,10 @@
 import { v2 as cloudinary } from "cloudinary";
+import { config } from "./env.js";
 
-const { CLOUDINARY_URL, CLOUD_NAME, CLOUD_API_KEY, CLOUD_API_SECRET } =
-  process.env;
+const { cloudinaryUrl, cloudinaryName, cloudinaryApiKey, cloudinaryApiSecret } =
+  config;
 
-const isTest = process.env.NODE_ENV === "test";
+const isTest = config.isTest;
 
 let client;
 
@@ -16,17 +17,17 @@ if (isTest) {
       }),
     },
   };
-} else if (CLOUDINARY_URL) {
+} else if (cloudinaryUrl) {
   // Render and other hosted environments usually expose a single CLOUDINARY_URL
   cloudinary.config({
     secure: true,
   });
   client = cloudinary;
-} else if (CLOUD_NAME && CLOUD_API_KEY && CLOUD_API_SECRET) {
+} else if (cloudinaryName && cloudinaryApiKey && cloudinaryApiSecret) {
   cloudinary.config({
-    cloud_name: CLOUD_NAME,
-    api_key: CLOUD_API_KEY,
-    api_secret: CLOUD_API_SECRET,
+    cloud_name: cloudinaryName,
+    api_key: cloudinaryApiKey,
+    api_secret: cloudinaryApiSecret,
     secure: true,
   });
   client = cloudinary;

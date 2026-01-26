@@ -1,6 +1,8 @@
 import { createClient } from "redis";
+import { config } from "./env.js";
+import logger from "../utils/logger.js";
 
-const redisUrl = process.env.REDIS_URL;
+const redisUrl = config.redisUrl;
 
 let client;
 let connecting;
@@ -15,7 +17,7 @@ export const getRedisClient = async () => {
 
   const instance = createClient({ url: redisUrl });
   instance.on("error", err => {
-    console.error("Redis error:", err);
+    logger.error({ err }, "Redis error");
   });
 
   connecting = instance.connect().then(() => {
