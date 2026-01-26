@@ -53,4 +53,23 @@ describe('🏠 Basic API Tests', () => {
     console.log('✅ 404 test passed!');
   });
 
+  // Test 4: API docs endpoint should be available
+  test("should serve API docs", async () => {
+    const response = await request(app)
+      .get("/api/docs/")
+      .expect(200);
+
+    expect(response.text).toContain("Swagger UI");
+  });
+
+  // Test 5: Error handler should return structured response
+  test("should return structured error response", async () => {
+    const response = await request(app)
+      .get("/__test/error")
+      .expect(500);
+
+    expect(response.body).toHaveProperty("message", "Internal Server Error");
+    expect(response.body).toHaveProperty("code", "INTERNAL_ERROR");
+  });
+
 });
