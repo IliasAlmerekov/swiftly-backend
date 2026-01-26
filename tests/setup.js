@@ -4,6 +4,8 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import dotenv from 'dotenv';
+import { URL } from 'url';
+import fs from 'fs';
 
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
@@ -26,9 +28,33 @@ console.log('- JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Missing');
 // Create a fake database in memory for testing
 let mongoServer;
 
+const isAlpine = () => {
+  try {
+    const content = fs.readFileSync('/etc/os-release', 'utf8');
+    return /ID=alpine/.test(content);
+  } catch {
+    return false;
+  }
+};
+
+const buildWorkerDbUri = baseUri => {
+  try {
+    const workerId = process.env.JEST_WORKER_ID || '1';
+    const uri = new URL(baseUri);
+    const dbName = uri.pathname && uri.pathname !== '/' ? uri.pathname.slice(1) : 'helpdesk_test';
+    uri.pathname = `/${dbName}_${workerId}`;
+    return uri.toString();
+  } catch {
+    return baseUri;
+  }
+};
+
 // This runs once before all tests start
 beforeAll(async () => {
   try {
+    if (isAlpine()) {
+      throw new Error('MongoMemoryServer is not supported on Alpine');
+    }
     // Create an in-memory MongoDB database for testing
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
@@ -42,8 +68,9 @@ beforeAll(async () => {
     
     // Fallback: Verwende echte MongoDB wenn Memory Server fehlschlägt
     if (process.env.MONGO_URI) {
+      const workerUri = buildWorkerDbUri(process.env.MONGO_URI);
       console.log('🔄 Fallback: Verwende echte Test-Datenbank');
-      await mongoose.connect(process.env.MONGO_URI);
+      await mongoose.connect(workerUri);
       console.log('✅ Echte Test-Datenbank verbunden');
     } else {
       throw new Error('Weder Memory Server noch Test-Datenbank verfügbar');
