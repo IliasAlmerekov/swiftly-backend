@@ -118,16 +118,66 @@ describe("Ticket Tests", () => {
       .expect(201);
 
     const response = await request(app)
-      .get("/api/tickets/user")
+      .get("/api/tickets?scope=mine")
       .set("Authorization", `Bearer ${token}`)
       .expect(200);
 
-    expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body).toHaveLength(2);
+    expect(Array.isArray(response.body.items)).toBe(true);
+    expect(response.body.items).toHaveLength(2);
+    expect(response.body.pageInfo).toHaveProperty("limit");
+    expect(response.body.pageInfo).toHaveProperty("hasNextPage", false);
+    expect(response.body.pageInfo).toHaveProperty("nextCursor", null);
 
-    const titles = response.body.map(ticket => ticket.title);
+    const titles = response.body.items.map(ticket => ticket.title);
     expect(titles).toContain("First Ticket");
     expect(titles).toContain("Second Ticket");
+  });
+
+  test("should paginate user tickets with cursor", async () => {
+    const { token } = await createUserAndGetToken({
+      email: "cursoruser@example.com",
+      password: "password123",
+      name: "Cursor User",
+    });
+
+    await request(app)
+      .post("/api/tickets")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "Ticket 1", description: "Desc 1", priority: "low" })
+      .expect(201);
+
+    await request(app)
+      .post("/api/tickets")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "Ticket 2", description: "Desc 2", priority: "medium" })
+      .expect(201);
+
+    await request(app)
+      .post("/api/tickets")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "Ticket 3", description: "Desc 3", priority: "high" })
+      .expect(201);
+
+    const firstPage = await request(app)
+      .get("/api/tickets?scope=mine&limit=2")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.items).toHaveLength(2);
+    expect(firstPage.body.pageInfo).toHaveProperty("hasNextPage", true);
+    expect(typeof firstPage.body.pageInfo.nextCursor).toBe("string");
+
+    const secondPage = await request(app)
+      .get(
+        `/api/tickets?scope=mine&limit=2&cursor=${encodeURIComponent(
+          firstPage.body.pageInfo.nextCursor
+        )}`
+      )
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+
+    expect(secondPage.body.items).toHaveLength(1);
+    expect(secondPage.body.pageInfo).toHaveProperty("hasNextPage", false);
   });
 
   test("should get all tickets for admin user", async () => {
@@ -150,12 +200,13 @@ describe("Ticket Tests", () => {
       .expect(201);
 
     const response = await request(app)
-      .get("/api/tickets")
+      .get("/api/tickets?scope=all")
       .set("Authorization", `Bearer ${adminUser.token}`)
       .expect(200);
 
-    expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body.length).toBeGreaterThan(0);
+    expect(Array.isArray(response.body.items)).toBe(true);
+    expect(response.body.items.length).toBeGreaterThan(0);
+    expect(response.body.pageInfo).toHaveProperty("limit");
   });
 
   test("should not allow regular user to access admin endpoints", async () => {
@@ -166,7 +217,7 @@ describe("Ticket Tests", () => {
     });
 
     const response = await request(app)
-      .get("/api/tickets")
+      .get("/api/tickets?scope=all")
       .set("Authorization", `Bearer ${token}`)
       .expect(403);
 

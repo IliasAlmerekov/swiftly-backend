@@ -9,25 +9,13 @@ import ticketUpload from "../middlewares/ticketUploadMiddleware.js";
 const router = express.Router();
 const ticketController = createTicketController(container);
 
-// Route zum Abrufen aller Tickets (Admin)
+// Route zum Abrufen von Tickets mit Filtern
 // GET /api/tickets
-router.get(
-  "/",
-  authMiddleware,
-  requireRole(["support1", "admin"]),
-  ticketController.getAllTickets
-);
-
-// Route zum Abrufen der Tickets des angemeldeten Benutzers
-// GET /api/tickets/user
-router.get("/user", authMiddleware, ticketController.getUserTickets);
+router.get("/", authMiddleware, ticketController.listTickets);
 
 // Route zum Abrufen der Ticket-Statistiken des angemeldeten Benutzers
 // GET /api/tickets/stats
 router.get("/user/stats", authMiddleware, ticketController.getUserTicketStats);
-
-// Route zum Abrufen der Anzahl der heute erstellten Tickets
-router.get("/today", authMiddleware, ticketController.getTicketsToday);
 
 // Route zum Abrufen der Ticket-Statistiken
 router.get("/stats", authMiddleware, ticketController.getTicketStats);

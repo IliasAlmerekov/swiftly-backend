@@ -19,6 +19,20 @@ const postalCode = z.preprocess(value => {
   return value;
 }, z.number().int().optional());
 
+const ticketStatuses = ["open", "in-progress", "resolved", "closed"];
+
+const ticketStatusFilter = z.preprocess(value => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const values = Array.isArray(value) ? value : [value];
+  const flattened = values.flatMap(item => String(item).split(","));
+  const normalized = flattened.map(item => item.trim()).filter(Boolean);
+  return normalized.length > 0 ? normalized : undefined;
+}, z.array(z.enum(ticketStatuses)).optional());
+
+const ticketScopeFilter = z.enum(["all", "mine", "assignedToMe"]).optional();
+
+const ticketDateFilter = z.enum(["today"]).optional();
+
 export const authRegisterDto = z
   .object({
     email: requiredString.email(),
@@ -66,8 +80,12 @@ export const ticketTriageDto = z.object({
 });
 
 export const ticketListDto = z.object({
-  page: z.coerce.number().int().min(1).optional(),
+  cursor: z.string().trim().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
+  scope: ticketScopeFilter,
+  status: ticketStatusFilter,
+  date: ticketDateFilter,
+  includeUnassigned: z.coerce.boolean().optional(),
 });
 
 export const userIdParamDto = z.object({

@@ -22,20 +22,27 @@ const storage = multer.diskStorage({
   },
 });
 
-const allowedMimeTypes = new Set([
+export const MAX_TICKET_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
+
+export const allowedTicketMimeTypes = new Set([
   "image/jpeg",
+  "image/jpg",
   "image/png",
   "image/gif",
   "image/webp",
   "application/pdf",
   "text/plain",
+  "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
+  "audio/mpeg",
+  "audio/mp3",
+  "video/mp4"
 ]);
 
 const fileFilter = (req, file, cb) => {
-  if (allowedMimeTypes.has(file.mimetype)) {
+  if (allowedTicketMimeTypes.has(file.mimetype)) {
     cb(null, true);
   } else {
     cb(new Error("Unsupported file type"), false);
@@ -45,7 +52,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: MAX_TICKET_ATTACHMENT_SIZE_BYTES,
   },
   fileFilter,
 });
