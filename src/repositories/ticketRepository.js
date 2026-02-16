@@ -20,7 +20,11 @@ class TicketRepository {
   }
 
   findByOwnerPopulated(ownerId, { cursor = null, limit = 50 } = {}) {
-    return this.findFilteredPopulated({ filter: { owner: ownerId }, cursor, limit });
+    return this.findFilteredPopulated({
+      filter: { owner: ownerId },
+      cursor,
+      limit,
+    });
   }
 
   findByIdPopulated(ticketId) {

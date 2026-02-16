@@ -14,7 +14,7 @@ export const validateDto = (schema, payload) => {
       const err = new AppError(normalizeMessage(error.issues), {
         statusCode: 400,
         code: "VALIDATION_ERROR",
-        details: error.issues
+        details: error.issues,
       });
       throw err;
     }

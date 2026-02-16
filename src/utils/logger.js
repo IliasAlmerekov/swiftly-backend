@@ -6,9 +6,8 @@ const logger = pino({
   base: null,
   redact: {
     paths: ["req.headers.authorization", "req.headers.cookie"],
-    remove: true
-  }
+    remove: true,
+  },
 });
 
 export default logger;
-

@@ -13,7 +13,7 @@ const authMiddleware = async (req, res, next) => {
       return next(
         new AppError("Not authorized", {
           statusCode: 401,
-          code: "AUTH_REQUIRED"
+          code: "AUTH_REQUIRED",
         })
       );
     }
@@ -28,7 +28,7 @@ const authMiddleware = async (req, res, next) => {
       return next(
         new AppError("Not authorized", {
           statusCode: 401,
-          code: "AUTH_INVALID"
+          code: "AUTH_INVALID",
         })
       );
     }
@@ -40,7 +40,7 @@ const authMiddleware = async (req, res, next) => {
     next(
       new AppError("Not authorized", {
         statusCode: 401,
-        code: "AUTH_INVALID"
+        code: "AUTH_INVALID",
       })
     );
   }

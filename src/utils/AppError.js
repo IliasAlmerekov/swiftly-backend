@@ -1,7 +1,12 @@
 export class AppError extends Error {
   constructor(
     message,
-    { statusCode = 500, code = "INTERNAL_ERROR", isOperational = true, details } = {}
+    {
+      statusCode = 500,
+      code = "INTERNAL_ERROR",
+      isOperational = true,
+      details,
+    } = {}
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -12,4 +17,3 @@ export class AppError extends Error {
 }
 
 export const isAppError = error => error instanceof AppError;
-
