@@ -7,6 +7,7 @@ const createService = () => {
     findByOwnerPopulated: jest.fn(),
     findByIdPopulated: jest.fn(),
     findById: jest.fn(),
+    findFilteredPopulated: jest.fn(),
     save: jest.fn(),
     create: jest.fn(),
     countByDateRange: jest.fn(),
@@ -35,10 +36,12 @@ const createService = () => {
 };
 
 describe("TicketService", () => {
-  test("getAllTickets rejects non-support users", async () => {
+  test("listTickets rejects non-support users for all scope", async () => {
     const { service } = createService();
-    await expect(service.getAllTickets({ role: "user" })).rejects.toMatchObject({
-      status: 403
+    await expect(
+      service.listTickets({ role: "user", _id: "u1" }, { scope: "all" })
+    ).rejects.toMatchObject({
+      statusCode: 403
     });
   });
 
@@ -117,4 +120,3 @@ describe("TicketService", () => {
     expect(fs.unlinkSync).toHaveBeenCalledWith("/tmp/file");
   });
 });
-

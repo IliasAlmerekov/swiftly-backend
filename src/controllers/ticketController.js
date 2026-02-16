@@ -10,21 +10,15 @@ import {
 } from "../validation/schemas.js";
 
 export const createTicketController = ({ ticketService }) => ({
-  getAllTickets: asyncHandler(async (req, res) => {
+  listTickets: asyncHandler(async (req, res) => {
     const query = validateDto(ticketListDto, req.query);
-    const tickets = await ticketService.getAllTickets(req.user, query);
+    const tickets = await ticketService.listTickets(req.user, query);
     res.status(200).json(tickets);
   }),
 
   getTicketsToday: asyncHandler(async (req, res) => {
     const ticketsToday = await ticketService.getTicketsToday();
     res.status(200).json({ ticketsToday });
-  }),
-
-  getUserTickets: asyncHandler(async (req, res) => {
-    const query = validateDto(ticketListDto, req.query);
-    const tickets = await ticketService.getUserTickets(req.user, query);
-    res.status(200).json(tickets);
   }),
 
   addComment: asyncHandler(async (req, res) => {
