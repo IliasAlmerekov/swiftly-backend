@@ -5,7 +5,9 @@ dotenv.config();
 
 const envSchema = z
   .object({
-    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
     PORT: z.coerce.number().int().positive().default(3001),
     MONGO_URI: z.string().optional(),
     JWT_SECRET: z.string().min(1).optional(),
@@ -19,14 +21,14 @@ const envSchema = z
     CLOUDINARY_URL: z.string().optional(),
     CLOUD_NAME: z.string().optional(),
     CLOUD_API_KEY: z.string().optional(),
-    CLOUD_API_SECRET: z.string().optional()
+    CLOUD_API_SECRET: z.string().optional(),
   })
   .superRefine((values, ctx) => {
     if (values.NODE_ENV !== "test" && !values.MONGO_URI) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "MONGO_URI is required outside of test",
-        path: ["MONGO_URI"]
+        path: ["MONGO_URI"],
       });
     }
 
@@ -35,12 +37,16 @@ const envSchema = z
       values.CLOUD_NAME && values.CLOUD_API_KEY && values.CLOUD_API_SECRET
     );
 
-    if (values.NODE_ENV !== "test" && !hasCloudinaryUrl && !hasCloudinaryParts) {
+    if (
+      values.NODE_ENV !== "test" &&
+      !hasCloudinaryUrl &&
+      !hasCloudinaryParts
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
           "Cloudinary config is required outside of test (CLOUDINARY_URL or CLOUD_NAME/CLOUD_API_KEY/CLOUD_API_SECRET).",
-        path: ["CLOUDINARY_URL"]
+        path: ["CLOUDINARY_URL"],
       });
     }
 
@@ -48,7 +54,7 @@ const envSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "JWT_SECRET is required outside of test",
-        path: ["JWT_SECRET"]
+        path: ["JWT_SECRET"],
       });
     }
   });
@@ -72,8 +78,7 @@ export const config = {
     env.JWT_SECRET || (env.NODE_ENV === "test" ? "test-secret" : undefined),
   jwtExpires: env.JWT_EXPIRES,
   corsOrigin: env.CORS_ORIGIN || "",
-  logLevel:
-    env.LOG_LEVEL || (env.NODE_ENV === "test" ? "silent" : "info"),
+  logLevel: env.LOG_LEVEL || (env.NODE_ENV === "test" ? "silent" : "info"),
   requestBodyLimit: env.REQUEST_BODY_LIMIT || "1mb",
   openaiApiKey: env.OPENAI_API_KEY,
   redisUrl: env.REDIS_URL,
@@ -81,5 +86,5 @@ export const config = {
   cloudinaryUrl: env.CLOUDINARY_URL,
   cloudinaryName: env.CLOUD_NAME,
   cloudinaryApiKey: env.CLOUD_API_KEY,
-  cloudinaryApiSecret: env.CLOUD_API_SECRET
+  cloudinaryApiSecret: env.CLOUD_API_SECRET,
 };

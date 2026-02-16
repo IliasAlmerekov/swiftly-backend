@@ -21,13 +21,16 @@ const postalCode = z.preprocess(value => {
 
 const ticketStatuses = ["open", "in-progress", "resolved", "closed"];
 
-const ticketStatusFilter = z.preprocess(value => {
-  if (value === undefined || value === null || value === "") return undefined;
-  const values = Array.isArray(value) ? value : [value];
-  const flattened = values.flatMap(item => String(item).split(","));
-  const normalized = flattened.map(item => item.trim()).filter(Boolean);
-  return normalized.length > 0 ? normalized : undefined;
-}, z.array(z.enum(ticketStatuses)).optional());
+const ticketStatusFilter = z.preprocess(
+  value => {
+    if (value === undefined || value === null || value === "") return undefined;
+    const values = Array.isArray(value) ? value : [value];
+    const flattened = values.flatMap(item => String(item).split(","));
+    const normalized = flattened.map(item => item.trim()).filter(Boolean);
+    return normalized.length > 0 ? normalized : undefined;
+  },
+  z.array(z.enum(ticketStatuses)).optional()
+);
 
 const ticketScopeFilter = z.enum(["all", "mine", "assignedToMe"]).optional();
 

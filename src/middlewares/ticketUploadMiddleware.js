@@ -38,7 +38,7 @@ export const allowedTicketMimeTypes = new Set([
   "application/vnd.ms-excel",
   "audio/mpeg",
   "audio/mp3",
-  "video/mp4"
+  "video/mp4",
 ]);
 
 const fileFilter = (req, file, cb) => {

@@ -1,5 +1,6 @@
 import { decodeCursor, encodeCursor } from "../utils/cursor.js";
 import { AppError } from "../utils/AppError.js";
+import logger from "../utils/logger.js";
 
 class TicketService {
   constructor({ ticketRepository, userRepository, cloudinary, fs }) {
@@ -51,7 +52,11 @@ class TicketService {
     }
 
     const filter =
-      filters.length === 0 ? {} : filters.length === 1 ? filters[0] : { $and: filters };
+      filters.length === 0
+        ? {}
+        : filters.length === 1
+          ? filters[0]
+          : { $and: filters };
 
     const tickets = await this.ticketRepository.findFilteredPopulated({
       filter,
@@ -200,21 +205,6 @@ class TicketService {
     const currentMonth = now.getMonth();
 
     const stats = [];
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-
     for (let month = 0; month <= currentMonth; month++) {
       const startDate = new Date(currentYear, month, 1);
       const endDate = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
@@ -223,7 +213,7 @@ class TicketService {
         endDate
       );
       stats.push({
-        month: monthNames[month],
+        month: getMonthName(month),
         monthNumber: month + 1,
         count,
         year: currentYear,
@@ -250,21 +240,6 @@ class TicketService {
       startMonth = 12 + startMonth;
     }
 
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-
     for (let i = 0; i < 6; i++) {
       let month = startMonth + i;
       let year = currentYear + yearOffset;
@@ -281,7 +256,7 @@ class TicketService {
         endDate
       );
       stats.push({
-        month: monthNames[month],
+        month: getMonthName(month),
         monthNumber: month + 1,
         count,
         year,
@@ -327,7 +302,10 @@ class TicketService {
       try {
         this.fs.unlinkSync(file.path);
       } catch (unlinkError) {
-        console.error("Error removing temporary file:", unlinkError);
+        logger.warn(
+          { error: unlinkError, filePath: file.path },
+          "Failed to remove temporary upload file"
+        );
       }
     }
 
@@ -387,7 +365,9 @@ const getBerlinDayRange = () => {
   );
 
   const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0) - offsetMs);
-  const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999) - offsetMs);
+  const end = new Date(
+    Date.UTC(year, month - 1, day, 23, 59, 59, 999) - offsetMs
+  );
 
   return { start, end };
 };
@@ -420,5 +400,22 @@ const getTimeZoneOffsetMs = (date, timeZone) => {
 
   return asUtc - date.getTime();
 };
+
+const MONTH_NAMES = new Map([
+  [0, "January"],
+  [1, "February"],
+  [2, "March"],
+  [3, "April"],
+  [4, "May"],
+  [5, "June"],
+  [6, "July"],
+  [7, "August"],
+  [8, "September"],
+  [9, "October"],
+  [10, "November"],
+  [11, "December"],
+]);
+
+const getMonthName = month => MONTH_NAMES.get(month) ?? "Unknown";
 
 export default TicketService;

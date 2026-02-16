@@ -7,7 +7,7 @@ import { config } from "../config/env.js";
 
 const signToken = (id, role, email, name) =>
   jwt.sign({ id, role, email, name }, config.jwtSecret, {
-    expiresIn: config.jwtExpires
+    expiresIn: config.jwtExpires,
   });
 
 // Registrierung eines neuen Benutzers

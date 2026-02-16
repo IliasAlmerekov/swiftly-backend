@@ -14,6 +14,5 @@ const genReqId = (req, res) => {
 export const requestLogger = pinoHttp({
   logger,
   genReqId,
-  autoLogging: !config.isTest
+  autoLogging: !config.isTest,
 });
-
