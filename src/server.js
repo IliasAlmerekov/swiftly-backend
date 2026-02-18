@@ -107,7 +107,7 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "OK",
     timestamp: new Date().toISOString(),
-    service: "ScooTeq Helpdesk Backend",
+    service: "Swiftly Helpdesk Backend",
   });
 });
 
@@ -162,7 +162,7 @@ mongoose
   .connect(config.mongoUri)
   .then(() => {
     server = app.listen(config.port, "0.0.0.0", () => {
-      logger.info({ port: config.port }, "ScooTeq Helpdesk Server started");
+      logger.info({ port: config.port }, "Swiftly Helpdesk Server started");
       logger.info({ env: config.nodeEnv }, "Environment");
 
       // Start cleanup job for inactive users (every 5 minutes)

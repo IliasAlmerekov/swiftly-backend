@@ -37,7 +37,7 @@ describe('🏠 Basic API Tests', () => {
     
     // Check if the response has the right structure
     expect(response.body).toHaveProperty('status', 'OK');
-    expect(response.body).toHaveProperty('service', 'ScooTeq Helpdesk Backend');
+    expect(response.body).toHaveProperty('service', 'Swiftly Helpdesk Backend');
     expect(response.body).toHaveProperty('timestamp');
     
     console.log('✅ Health check test passed!');

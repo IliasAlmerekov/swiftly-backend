@@ -56,7 +56,7 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ 
     status: "OK", 
     timestamp: new Date().toISOString(),
-    service: "ScooTeq Helpdesk Backend"
+    service: "Swiftly Helpdesk Backend"
   });
 });
 

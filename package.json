@@ -1,7 +1,7 @@
 {
-  "name": "scoo-teq-helpdesk-backend",
+  "name": "swiftly-backend",
   "version": "1.0.0",
-  "description": "ScooTeq Helpdesk System - Backend API",
+  "description": "Swiftly Helpdesk System - Backend API",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -26,7 +26,7 @@
     "mongodb",
     "api"
   ],
-  "author": "ScooTeq Team",
+  "author": "Swiftly Team",
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",

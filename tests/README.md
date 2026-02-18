@@ -1,6 +1,6 @@
 # 🧪 Testing Guide for Beginners
 
-This guide will help you understand and run tests for your ScooTeq Helpdesk backend.
+This guide will help you understand and run tests for your Swiftly Helpdesk backend.
 
 ## What are tests?
 
