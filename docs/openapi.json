@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "ScooTeq Helpdesk API",
+    "title": "Swiftly Helpdesk API",
     "version": "1.0.0",
-    "description": "REST API for the ScooTeq Helpdesk backend."
+    "description": "REST API for the Swiftly Helpdesk backend."
   },
   "servers": [
     {

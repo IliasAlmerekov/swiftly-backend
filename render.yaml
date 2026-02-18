@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: scooteq-helpdesk-backend
+    name: swiftly-backend
     runtime: docker
     dockerfilePath: ./Dockerfile
     branch: main

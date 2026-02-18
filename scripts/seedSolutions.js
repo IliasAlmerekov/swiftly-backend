@@ -5,7 +5,7 @@ import Solution from '../src/models/solutionModel.js';
 // Umgebungsvariablen laden
 dotenv.config();
 
-// Sample Solutions Daten - typische Helpdesk Probleme
+// Sample Swiftly Daten - typische Helpdesk Probleme
 const sampleSolutions = [
   {
     title: "E-Mail kann nicht gesendet werden",
@@ -83,9 +83,9 @@ async function seedSolutions() {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Verbindung zur MongoDB hergestellt');
 
-    // Prüfen ob bereits Solutions existieren
+    // Prüfen ob bereits Swiftly existieren
     const existingSolutions = await Solution.countDocuments();
-    console.log(`📊 Aktuelle Anzahl Solutions: ${existingSolutions}`);
+    console.log(`📊 Aktuelle Anzahl Swiftly: ${existingSolutions}`);
     
     if (existingSolutions > 0) {
       console.log(`⚠️ Es existieren bereits ${existingSolutions} Lösungen in der Datenbank.`);

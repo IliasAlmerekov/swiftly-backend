@@ -1,6 +1,6 @@
-﻿# ScooTeq Helpdesk - Backend API
+# Swiftly Helpdesk - Backend API
 
-RESTful API for the ScooTeq Helpdesk System built with Node.js and Express.
+RESTful API for the Swiftly Helpdesk System built with Node.js and Express.
 
 ##  Technology Stack
 
