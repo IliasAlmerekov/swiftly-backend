@@ -21,7 +21,7 @@ before_script:
 secret_scan:
   stage: security
   image:
-    name: zricethezav/gitleaks:8.24.2
+    name: zricethezav/gitleaks:v8.24.2
     entrypoint: [""]
   script:
     - gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
