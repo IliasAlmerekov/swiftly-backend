@@ -32,10 +32,16 @@ jobs:
         uses: actions/checkout@v4
       - name: Install gitleaks
         run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin v8.24.2
+          GITLEAKS_VERSION="v8.24.2"
+          GITLEAKS_ASSET="gitleaks_${GITLEAKS_VERSION#v}_linux_x64.tar.gz"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/${GITLEAKS_ASSET}" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
           gitleaks version
       - name: Run gitleaks
-        run: gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
 
   lint:
     name: Lint

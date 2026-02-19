@@ -62,7 +62,6 @@ export const authLogoutDto = z
   })
   .strict();
 
-
 const aiMessageField = z
   .string({
     required_error: "Nachricht ist erforderlich",
@@ -187,5 +186,3 @@ export const solutionListDto = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().optional(),
 });
-
-

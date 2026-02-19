@@ -99,4 +99,3 @@ export const config = {
   cloudinaryApiKey: env.CLOUD_API_KEY,
   cloudinaryApiSecret: env.CLOUD_API_SECRET,
 };
-

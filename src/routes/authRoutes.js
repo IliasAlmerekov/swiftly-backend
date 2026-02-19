@@ -18,4 +18,3 @@ router.post("/logout", authMiddleware, logout);
 router.get("/admins", authMiddleware, getAdmins);
 
 export default router;
-
