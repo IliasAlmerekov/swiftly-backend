@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Trust workspace for git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Run gitleaks
         uses: docker://zricethezav/gitleaks:v8.24.2
         with:
