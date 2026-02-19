@@ -12,6 +12,8 @@ const envSchema = z
     MONGO_URI: z.string().optional(),
     JWT_SECRET: z.string().min(1).optional(),
     JWT_EXPIRES: z.string().min(1).default("12h"),
+    JWT_REFRESH_SECRET: z.string().min(1).optional(),
+    JWT_REFRESH_EXPIRES: z.string().min(1).default("7d"),
     CORS_ORIGIN: z.string().optional(),
     LOG_LEVEL: z.string().optional(),
     REQUEST_BODY_LIMIT: z.string().optional(),
@@ -68,15 +70,24 @@ if (!parsed.success) {
 
 const env = parsed.data;
 
+const resolvedJwtSecret =
+  env.JWT_SECRET || (env.NODE_ENV === "test" ? "test-secret" : undefined);
+
+const resolvedRefreshSecret =
+  env.JWT_REFRESH_SECRET ||
+  env.JWT_SECRET ||
+  (env.NODE_ENV === "test" ? "test-refresh-secret" : undefined);
+
 export const config = {
   nodeEnv: env.NODE_ENV,
   isProduction: env.NODE_ENV === "production",
   isTest: env.NODE_ENV === "test",
   port: env.PORT,
   mongoUri: env.MONGO_URI,
-  jwtSecret:
-    env.JWT_SECRET || (env.NODE_ENV === "test" ? "test-secret" : undefined),
+  jwtSecret: resolvedJwtSecret,
   jwtExpires: env.JWT_EXPIRES,
+  jwtRefreshSecret: resolvedRefreshSecret,
+  jwtRefreshExpires: env.JWT_REFRESH_EXPIRES,
   corsOrigin: env.CORS_ORIGIN || "",
   logLevel: env.LOG_LEVEL || (env.NODE_ENV === "test" ? "silent" : "info"),
   requestBodyLimit: env.REQUEST_BODY_LIMIT || "1mb",
@@ -88,3 +99,4 @@ export const config = {
   cloudinaryApiKey: env.CLOUD_API_KEY,
   cloudinaryApiSecret: env.CLOUD_API_SECRET,
 };
+

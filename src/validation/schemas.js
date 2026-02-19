@@ -49,6 +49,19 @@ export const authLoginDto = z.object({
   password: z.string().min(1),
 });
 
+export const authRefreshDto = z
+  .object({
+    refreshToken: requiredString,
+  })
+  .strict();
+
+export const authLogoutDto = z
+  .object({
+    refreshToken: z.string().trim().min(1).optional(),
+    allSessions: z.coerce.boolean().optional(),
+  })
+  .strict();
+
 export const ticketIdParamDto = z.object({
   ticketId: objectId,
 });
@@ -147,3 +160,4 @@ export const solutionListDto = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().optional(),
 });
+
