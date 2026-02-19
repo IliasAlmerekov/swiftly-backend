@@ -31,7 +31,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run gitleaks
-        uses: docker://zricethezav/gitleaks:8.24.2
+        uses: docker://zricethezav/gitleaks:v8.24.2
         with:
           args: detect --source . --config .gitleaks.toml --redact --no-banner
 
