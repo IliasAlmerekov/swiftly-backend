@@ -62,6 +62,33 @@ export const authLogoutDto = z
   })
   .strict();
 
+
+const aiMessageField = z
+  .string({
+    required_error: "Nachricht ist erforderlich",
+    invalid_type_error: "Nachricht ist erforderlich",
+  })
+  .trim()
+  .min(1, "Nachricht ist erforderlich");
+
+export const aiChatDto = z.object({
+  message: aiMessageField,
+  sessionId: z.string().trim().min(1).max(128).optional(),
+});
+
+export const aiMessageDto = z.object({
+  message: aiMessageField,
+});
+
+export const aiConversationParamDto = z.object({
+  sessionId: z
+    .string({
+      required_error: "sessionId is required",
+      invalid_type_error: "sessionId is required",
+    })
+    .trim()
+    .min(1, "sessionId is required"),
+});
 export const ticketIdParamDto = z.object({
   ticketId: objectId,
 });
@@ -160,4 +187,5 @@ export const solutionListDto = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().optional(),
 });
+
 

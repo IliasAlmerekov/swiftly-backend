@@ -7,6 +7,12 @@ import { getRedisClient, isRedisEnabled } from "../config/redis.js";
 import { config } from "../config/env.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { AppError } from "../utils/AppError.js";
+import { validateDto } from "../validation/validateDto.js";
+import {
+  aiChatDto,
+  aiConversationParamDto,
+  aiMessageDto,
+} from "../validation/schemas.js";
 import logger from "../utils/logger.js";
 
 const router = express.Router();
@@ -29,23 +35,13 @@ const requireUserId = req => {
   return userId;
 };
 
-const requireMessage = body => {
-  const message = body?.message;
-  if (!message || typeof message !== "string" || message.trim().length === 0) {
-    throw new AppError("Nachricht ist erforderlich", {
-      statusCode: 400,
-      code: "VALIDATION_ERROR",
-    });
-  }
-  return message.trim();
-};
-
 const getConversation = async (userId, sessionId) => {
   if (isRedisEnabled) {
     const client = await getRedisClient();
     const raw = await client.get(conversationKey(userId, sessionId));
     return raw ? JSON.parse(raw) : null;
   }
+
   return conversationStore.get(conversationKey(userId, sessionId)) || null;
 };
 
@@ -53,11 +49,13 @@ const setConversation = async (userId, sessionId, entry) => {
   if (isRedisEnabled) {
     const client = await getRedisClient();
     const ttlSeconds = Math.max(1, Math.floor(conversationTtlMs / 1000));
+
     await client.set(conversationKey(userId, sessionId), JSON.stringify(entry), {
       EX: ttlSeconds,
     });
     return;
   }
+
   conversationStore.set(conversationKey(userId, sessionId), entry);
 };
 
@@ -67,6 +65,7 @@ const deleteConversation = async (userId, sessionId) => {
     await client.del(conversationKey(userId, sessionId));
     return;
   }
+
   conversationStore.delete(conversationKey(userId, sessionId));
 };
 
@@ -89,20 +88,13 @@ if (typeof sweepInterval.unref === "function") {
   sweepInterval.unref();
 }
 
-/**
- * @route   POST /api/ai/chat
- * @desc    Chat with AI assistant
- * @body    { message, sessionId }
- * @access  Private
- */
 router.post(
   "/chat",
   asyncHandler(async (req, res) => {
-    const message = requireMessage(req.body);
+    const { message, sessionId } = validateDto(aiChatDto, req.body || {});
     const userId = requireUserId(req);
-    const { sessionId } = req.body || {};
 
-    let effectiveSessionId = typeof sessionId === "string" ? sessionId : null;
+    let effectiveSessionId = sessionId || null;
     let stored = effectiveSessionId
       ? await getConversation(userId, effectiveSessionId)
       : null;
@@ -148,16 +140,10 @@ router.post(
   })
 );
 
-/**
- * @route   POST /api/ai/analyze-priority
- * @desc    Analyze priority for a message
- * @body    { message }
- * @access  Private
- */
 router.post(
   "/analyze-priority",
   asyncHandler(async (req, res) => {
-    const message = requireMessage(req.body);
+    const { message } = validateDto(aiMessageDto, req.body || {});
     const priority = await aiService.analyzePriority(message);
 
     res.json({
@@ -170,16 +156,10 @@ router.post(
   })
 );
 
-/**
- * @route   POST /api/ai/categorize
- * @desc    Categorize an issue automatically
- * @body    { message }
- * @access  Private
- */
 router.post(
   "/categorize",
   asyncHandler(async (req, res) => {
-    const message = requireMessage(req.body);
+    const { message } = validateDto(aiMessageDto, req.body || {});
     const category = await aiService.categorizeIssue(message);
 
     res.json({
@@ -192,24 +172,15 @@ router.post(
   })
 );
 
-/**
- * @route   DELETE /api/ai/conversation/:sessionId
- * @desc    Delete a conversation
- * @param   sessionId - Session ID
- * @access  Private
- */
 router.delete(
   "/conversation/:sessionId",
   asyncHandler(async (req, res) => {
-    const { sessionId } = req.params;
+    const { sessionId } = validateDto(aiConversationParamDto, req.params);
     const userId = requireUserId(req);
 
     await deleteConversation(userId, sessionId);
 
-    logger.info(
-      { sessionId, userId },
-      "AI conversation deleted"
-    );
+    logger.info({ sessionId, userId }, "AI conversation deleted");
 
     res.json({
       success: true,
@@ -218,14 +189,9 @@ router.delete(
   })
 );
 
-/**
- * @route   GET /api/ai/status
- * @desc    Check AI service status
- * @access  Private
- */
 router.get(
   "/status",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (_req, res) => {
     const isConfigured = aiService.isConfigured();
 
     if (!isConfigured) {
@@ -250,14 +216,9 @@ router.get(
   })
 );
 
-/**
- * @route   POST /api/ai/test-connection
- * @desc    Test OpenAI connection (dev/tests only)
- * @access  Private
- */
 router.post(
   "/test-connection",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (_req, res) => {
     const testResult = await aiService.testConnection();
 
     if (testResult.success) {
