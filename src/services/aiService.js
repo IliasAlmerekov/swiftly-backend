@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import AIRequestLog from "../models/aiLogs.js";
 import Solution from "../models/solutionModel.js";
 import { config } from "../config/env.js";
+import logger from "../utils/logger.js";
 import {
   GREETING_RESPONSES,
   FUNCTION_RESPONSES,
@@ -418,10 +419,7 @@ class AIService {
       const label = (cls.choices[0].message.content || "").trim().toUpperCase();
       return label === "IT";
     } catch (e) {
-      console.warn(
-        "[AI-Service] Klassifikator-Fehler, erlaube optimistisch:",
-        e?.message
-      );
+      logger.warn({ err: e }, "AI classifier fallback triggered");
       return true;
     }
   }
@@ -482,7 +480,7 @@ class AIService {
         ...keywordMatches,
       ]).slice(0, limit);
     } catch (error) {
-      console.error("[AI-Service] Fehler bei der L\u00f6sungssuche:", error);
+      logger.error({ err: error }, "AI solution search failed");
       return [];
     }
   }
@@ -651,7 +649,7 @@ class AIService {
         },
       };
     } catch (error) {
-      console.error("[AI-Service] Fehler bei der Antwortgenerierung:", error);
+      logger.error({ err: error }, "AI response generation failed");
       return {
         type: "error",
         message:
@@ -692,7 +690,7 @@ Antworte nur mit: Low, Medium oder High`,
       const out = (completion.choices[0]?.message?.content || "").trim();
       return ["Low", "Medium", "High"].includes(out) ? out : "Medium";
     } catch (e) {
-      console.error("[AI-Service] Fehler bei Priorit\u00e4tsanalyse:", e);
+      logger.error({ err: e }, "AI priority analysis failed");
       return "Medium";
     }
   }
@@ -733,7 +731,7 @@ Antworte nur mit der Kategorie.`,
       ];
       return valid.includes(out) ? out : "Sonstiges";
     } catch (e) {
-      console.error("[AI-Service] Fehler bei Kategorisierung:", e);
+      logger.error({ err: e }, "AI categorization failed");
       return "Sonstiges";
     }
   }
@@ -790,3 +788,7 @@ export {
   matchAny as _matchAny,
   countHits as _countHits,
 };
+
+
+
+
