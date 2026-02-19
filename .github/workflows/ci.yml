@@ -30,12 +30,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Trust workspace for git
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin v8.24.2
+          gitleaks version
       - name: Run gitleaks
-        uses: docker://zricethezav/gitleaks:v8.24.2
-        with:
-          args: detect --source . --config .gitleaks.toml --redact --no-banner
+        run: gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
 
   lint:
     name: Lint

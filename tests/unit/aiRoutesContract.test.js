@@ -1,6 +1,7 @@
 import express from "express";
 import request from "supertest";
 import { jest } from "@jest/globals";
+import { readFile } from "node:fs/promises";
 
 const mockGenerateResponse = jest.fn();
 const mockAnalyzePriority = jest.fn();
@@ -93,5 +94,11 @@ describe("ai routes error contract", () => {
       code: "VALIDATION_ERROR",
       message: "Nachricht ist erforderlich",
     });
+  });
+
+  test("does not read configuration from process.env in ai routes", async () => {
+    const source = await readFile("src/routes/aiRoutes.js", "utf8");
+
+    expect(source).not.toMatch(/\bprocess\.env\b/);
   });
 });
