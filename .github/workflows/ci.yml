@@ -1,0 +1,119 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Manual deploy target"
+        required: true
+        type: choice
+        options:
+          - production
+          - development
+
+env:
+  NODE_VERSION: "20"
+  JWT_SECRET: "test-secret-key-for-github-ci"
+  JWT_EXPIRES: "1h"
+  NODE_ENV: "test"
+
+jobs:
+  secret_scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run gitleaks
+        uses: docker://zricethezav/gitleaks:8.24.2
+        with:
+          args: detect --source . --config .gitleaks.toml --redact --no-banner
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: secret_scan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install deps
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install deps
+        run: npm ci
+      - name: Run tests
+        run: npm test
+
+  build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t swiftly-backend:${{ github.sha }} .
+
+  deploy_production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      startsWith(github.ref, 'refs/tags/') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'production')
+    steps:
+      - name: Trigger Render production deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL is not set"
+            exit 1
+          fi
+          curl -X POST "$RENDER_DEPLOY_HOOK_URL"
+
+  deploy_development:
+    name: Deploy Development
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      startsWith(github.ref, 'refs/tags/') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'development')
+    steps:
+      - name: Trigger Render development deploy
+        env:
+          RENDER_DEPLOY_HOOK_DEV_URL: ${{ secrets.RENDER_DEPLOY_HOOK_DEV_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_DEV_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_DEV_URL is not set"
+            exit 1
+          fi
+          curl -X POST "$RENDER_DEPLOY_HOOK_DEV_URL"
