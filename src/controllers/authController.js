@@ -109,9 +109,8 @@ export const refresh = asyncHandler(async (req, res) => {
     });
   }
 
-  const { accessToken, refreshToken: nextRefreshToken } = await issueTokenPair(
-    user
-  );
+  const { accessToken, refreshToken: nextRefreshToken } =
+    await issueTokenPair(user);
 
   await revokeRefreshToken(currentTokenDoc, nextRefreshToken);
 
@@ -133,11 +132,16 @@ export const logout = asyncHandler(async (req, res) => {
     });
   }
 
-  const { refreshToken, allSessions } = validateDto(authLogoutDto, req.body || {});
+  const { refreshToken, allSessions } = validateDto(
+    authLogoutDto,
+    req.body || {}
+  );
 
   if (allSessions) {
     await revokeAllUserRefreshTokens(req.user._id);
-    return res.status(200).json({ success: true, message: "Logged out from all sessions" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Logged out from all sessions" });
   }
 
   if (!refreshToken) {
@@ -157,7 +161,11 @@ export const logout = asyncHandler(async (req, res) => {
     });
   }
 
-  if (!decoded || decoded.tokenType !== "refresh" || decoded.id !== String(req.user._id)) {
+  if (
+    !decoded ||
+    decoded.tokenType !== "refresh" ||
+    decoded.id !== String(req.user._id)
+  ) {
     throw new AppError("Invalid refresh token", {
       statusCode: 401,
       code: "AUTH_INVALID_REFRESH",
@@ -191,4 +199,3 @@ export const getAdmins = asyncHandler(async (req, res) => {
 
   return res.status(200).json(admins);
 });
-

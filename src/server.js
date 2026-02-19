@@ -48,15 +48,15 @@ const baseHelmet = helmet({
   contentSecurityPolicy: false,
   hsts: config.isProduction
     ? { maxAge: 15552000, includeSubDomains: true, preload: true }
-    : false
+    : false,
 });
 const apiCsp = helmet.contentSecurityPolicy({
   directives: {
     defaultSrc: ["'none'"],
     baseUri: ["'none'"],
     frameAncestors: ["'none'"],
-    formAction: ["'none'"]
-  }
+    formAction: ["'none'"],
+  },
 });
 
 app.use(baseHelmet);

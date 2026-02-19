@@ -50,9 +50,13 @@ const setConversation = async (userId, sessionId, entry) => {
     const client = await getRedisClient();
     const ttlSeconds = Math.max(1, Math.floor(conversationTtlMs / 1000));
 
-    await client.set(conversationKey(userId, sessionId), JSON.stringify(entry), {
-      EX: ttlSeconds,
-    });
+    await client.set(
+      conversationKey(userId, sessionId),
+      JSON.stringify(entry),
+      {
+        EX: ttlSeconds,
+      }
+    );
     return;
   }
 
@@ -110,7 +114,10 @@ router.post(
       "AI chat message received"
     );
 
-    const response = await aiService.generateResponse(message, conversationHistory);
+    const response = await aiService.generateResponse(
+      message,
+      conversationHistory
+    );
 
     conversationHistory.push(
       { role: "user", content: message },
