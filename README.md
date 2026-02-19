@@ -165,3 +165,22 @@ Detailed API documentation is available at `/api/docs` when running the developm
 4. Ensure all tests pass before committing
 
 
+
+## Security Guardrails
+
+This repository blocks commits and pushes when potential secrets are detected.
+
+- Local hooks (Husky):
+  - `pre-commit` -> `npm run secrets:scan`
+  - `pre-push` -> `npm run secrets:scan`
+- CI gate (GitLab):
+  - `secret_scan` stage using `gitleaks`
+
+Install `gitleaks` locally to use hooks:
+
+```bash
+# verify installation
+gitleaks version
+```
+
+If you intentionally use non-secret placeholders, keep them in documented allowlisted files (`.env.example`, `README.md`, `docs/*`) and update `.gitleaks.toml` when needed.

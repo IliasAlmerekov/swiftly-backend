@@ -1,0 +1,14 @@
+[allowlist]
+description = "Allow known non-secret placeholders in docs/examples"
+regexes = [
+  '''mongodb://localhost:27017/helpdesk''',
+  '''your-super-secret-jwt-key-change-in-production''',
+  '''your-super-secret-refresh-key-change-in-production''',
+  '''sk-your-openai-api-key-here''',
+  '''example\.com'''
+]
+paths = [
+  '''\.env\.example''',
+  '''README\.md''',
+  '''docs/.*'''
+]
