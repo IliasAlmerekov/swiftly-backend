@@ -8,6 +8,8 @@
 import request from 'supertest';
 import app from './app.js';
 
+const allowedOrigin = "https://swiftly-helpdesk.netlify.app";
+
 // 📚 EXPLANATION:
 // - `describe` groups related tests together
 // - `test` (or `it`) is an individual test
@@ -70,6 +72,35 @@ describe('🏠 Basic API Tests', () => {
 
     expect(response.body).toHaveProperty("message", "Internal Server Error");
     expect(response.body).toHaveProperty("code", "INTERNAL_ERROR");
+  });
+
+  test("should handle API preflight requests globally", async () => {
+    const response = await request(app)
+      .options("/api/non-existent-route")
+      .set("Origin", allowedOrigin)
+      .set("Access-Control-Request-Method", "POST")
+      .expect(204);
+
+    expect(response.headers["access-control-allow-origin"]).toBe(allowedOrigin);
+    expect(response.headers["access-control-allow-methods"]).toContain("POST");
+  });
+
+  test("should include CORS headers on 404 responses", async () => {
+    const response = await request(app)
+      .get("/api/non-existent-route")
+      .set("Origin", allowedOrigin)
+      .expect(404);
+
+    expect(response.headers["access-control-allow-origin"]).toBe(allowedOrigin);
+  });
+
+  test("should include CORS headers on error responses", async () => {
+    const response = await request(app)
+      .get("/__test/error")
+      .set("Origin", allowedOrigin)
+      .expect(500);
+
+    expect(response.headers["access-control-allow-origin"]).toBe(allowedOrigin);
   });
 
 });
