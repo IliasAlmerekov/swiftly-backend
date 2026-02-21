@@ -11,6 +11,7 @@ import { errorHandler } from "../src/middlewares/errorHandler.js";
 import { notFound } from "../src/middlewares/notFound.js";
 import { requestLogger } from "../src/middlewares/requestLogger.js";
 import { config } from "../src/config/env.js";
+import { corsOptions } from "../src/config/cors.js";
 import { openApiSpec } from "../src/utils/openapi.js";
 import helmet from "helmet";
 
@@ -33,13 +34,14 @@ const apiCsp = helmet.contentSecurityPolicy({
 });
 
 // Set up middleware (the things that process requests)
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(requestLogger);
 app.use(baseHelmet);
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/docs")) return next();
   return apiCsp(req, res, next);
 });
-app.use(cors());
 app.use(express.json({ limit: config.requestBodyLimit })); // This lets us read JSON data from requests
 
 // Set up our routes (the different URLs our app responds to)

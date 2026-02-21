@@ -17,32 +17,15 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFound } from "./middlewares/notFound.js";
 import { requestLogger } from "./middlewares/requestLogger.js";
 import { config } from "./config/env.js";
+import { corsOptions } from "./config/cors.js";
 import logger from "./utils/logger.js";
 import { openApiSpec } from "./utils/openapi.js";
 
 const app = express();
-const allowedOrigins = (config.corsOrigin || "")
-  .split(",")
-  .map(origin => origin.trim())
-  .filter(Boolean);
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.length > 0) {
-      return callback(null, allowedOrigins.includes(origin));
-    }
-    if (!config.isProduction) {
-      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(
-        origin
-      );
-      return callback(null, isLocalhost);
-    }
-    return callback(new Error("Not allowed by CORS"));
-  },
-};
 
 app.disable("x-powered-by");
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(requestLogger);
 const baseHelmet = helmet({
   contentSecurityPolicy: false,
@@ -64,7 +47,6 @@ app.use((req, res, next) => {
   if (req.path.startsWith("/api/docs")) return next();
   return apiCsp(req, res, next);
 });
-app.use(cors(corsOptions));
 app.use(express.json({ limit: config.requestBodyLimit }));
 
 const authLimiter = rateLimit({
