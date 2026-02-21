@@ -18,7 +18,7 @@
     "render-build": "npm install",
     "render-start": "node src/server.js",
     "seed:solutions": "node -e \"import('./scripts/seedSolutions.js').then(module => module.default())\"",
-    "prepare": "husky",
+    "prepare": "node ./scripts/prepare.js",
     "secrets:scan": "node ./scripts/runSecretsScan.js",
     "secrets:ci": "gitleaks detect --source . --config .gitleaks.toml --redact --no-banner"
   },
