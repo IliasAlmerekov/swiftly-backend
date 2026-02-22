@@ -1,21 +1,12 @@
 import { createTicketUseCases } from "../application/tickets/use-cases/index.js";
-import logger from "../utils/logger.js";
 
 class TicketService {
-  constructor({
-    ticketRepository,
-    userRepository,
-    cloudinary,
-    fs,
-    fileStorage,
-    clock,
-  }) {
+  constructor({ ticketRepository, userRepository, fileStorage, clock }) {
     this.ticketRepository = ticketRepository;
     this.useCases = createTicketUseCases({
       ticketRepository,
       userRepository,
-      fileStorage:
-        fileStorage ?? createLegacyFileStorageAdapter({ cloudinary, fs }),
+      fileStorage,
       clock,
     });
   }
@@ -127,43 +118,6 @@ class TicketService {
     };
   }
 }
-
-const createLegacyFileStorageAdapter = ({ cloudinary, fs }) => {
-  return {
-    async uploadTicketAttachment(filePath) {
-      if (typeof cloudinary?.uploader?.upload !== "function") {
-        throw new TypeError(
-          "cloudinary.uploader.upload is required for attachment upload"
-        );
-      }
-
-      const result = await cloudinary.uploader.upload(filePath, {
-        folder: "ticket-attachments",
-        resource_type: "auto",
-      });
-
-      return {
-        publicId: result.public_id,
-        url: result.secure_url,
-      };
-    },
-
-    async removeTemporaryFile(filePath) {
-      if (typeof fs?.unlinkSync !== "function") {
-        return;
-      }
-
-      try {
-        fs.unlinkSync(filePath);
-      } catch (unlinkError) {
-        logger.warn(
-          { error: unlinkError, filePath },
-          "Failed to remove temporary upload file"
-        );
-      }
-    },
-  };
-};
 
 const MONTH_NAMES = new Map([
   [0, "January"],
