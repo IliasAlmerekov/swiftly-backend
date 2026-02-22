@@ -139,6 +139,37 @@ describe("Authentication Tests", () => {
     );
   });
 
+  test("should reject reuse of rotated refresh token and allow latest token", async () => {
+    const testUser = {
+      email: "rotation@example.com",
+      password: "password123",
+      name: "Rotation User",
+    };
+
+    const registerResponse = await request(app)
+      .post("/api/auth/register")
+      .send(testUser)
+      .expect(201);
+
+    const firstRefresh = await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: registerResponse.body.refreshToken })
+      .expect(200);
+
+    await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: registerResponse.body.refreshToken })
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body).toHaveProperty("code", "AUTH_REFRESH_REVOKED");
+      });
+
+    await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: firstRefresh.body.refreshToken })
+      .expect(200);
+  });
+
   test("should reject refresh for invalid refresh token", async () => {
     const response = await request(app)
       .post("/api/auth/refresh")
@@ -172,6 +203,46 @@ describe("Authentication Tests", () => {
       .expect(401);
 
     expect(refreshAfterLogout.body).toHaveProperty("code", "AUTH_REFRESH_REVOKED");
+  });
+
+  test("should revoke all sessions and block refresh tokens from each session", async () => {
+    const testUser = {
+      email: "logout-all@example.com",
+      password: "password123",
+      name: "Logout All User",
+    };
+
+    const registerResponse = await request(app)
+      .post("/api/auth/register")
+      .send(testUser)
+      .expect(201);
+
+    const secondSession = await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: registerResponse.body.refreshToken })
+      .expect(200);
+
+    await request(app)
+      .post("/api/auth/logout")
+      .set("Authorization", `Bearer ${secondSession.body.accessToken}`)
+      .send({ allSessions: true })
+      .expect(200);
+
+    await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: registerResponse.body.refreshToken })
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body).toHaveProperty("code", "AUTH_REFRESH_REVOKED");
+      });
+
+    await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: secondSession.body.refreshToken })
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body).toHaveProperty("code", "AUTH_REFRESH_REVOKED");
+      });
   });
 
   test("should reject using refresh token as bearer token", async () => {

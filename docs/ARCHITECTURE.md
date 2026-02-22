@@ -46,10 +46,7 @@ Rules behind the matrix:
 ## Temporary Legacy Exceptions (Removal Deadline: 2026-06-30)
 These exceptions are transitional and MUST be removed by the deadline:
 
-1. `src/controllers/authController.js` imports `src/models/userModel.js`.
-2. `src/middlewares/authMiddleware.js` imports `src/models/userModel.js`.
-3. `src/services/aiService.js` imports `openai` and models directly (`src/models/aiLogs.js`, `src/models/solutionModel.js`).
-4. `src/services/tokenService.js` imports `src/models/refreshTokenModel.js` directly.
+1. `src/services/aiService.js` imports `openai` and models directly (`src/models/aiLogs.js`, `src/models/solutionModel.js`).
 
 Removal condition:
 - Replace direct model/vendor usage with application ports and infrastructure adapters wired in `src/composition`.
