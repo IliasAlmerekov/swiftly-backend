@@ -16,22 +16,20 @@ const createService = () => {
   const userRepository = {
     findSupportUserById: jest.fn()
   };
-  const cloudinary = {
-    uploader: { upload: jest.fn() }
+  const fileStorage = {
+    uploadTicketAttachment: jest.fn(),
+    removeTemporaryFile: jest.fn()
   };
-  const fs = { unlinkSync: jest.fn() };
 
   return {
     service: new TicketService({
       ticketRepository,
       userRepository,
-      cloudinary,
-      fs
+      fileStorage
     }),
     ticketRepository,
     userRepository,
-    cloudinary,
-    fs
+    fileStorage
   };
 };
 
@@ -97,12 +95,12 @@ describe("TicketService", () => {
   });
 
   test("uploadAttachment stores metadata and cleans up file", async () => {
-    const { service, ticketRepository, cloudinary, fs } = createService();
+    const { service, ticketRepository, fileStorage } = createService();
     const ticket = { owner: "u1", attachments: [], save: jest.fn() };
     ticketRepository.findById.mockResolvedValue(ticket);
-    cloudinary.uploader.upload.mockResolvedValue({
-      public_id: "p1",
-      secure_url: "https://example.com/file"
+    fileStorage.uploadTicketAttachment.mockResolvedValue({
+      publicId: "p1",
+      url: "https://example.com/file"
     });
 
     const attachments = await service.uploadAttachment(
@@ -117,6 +115,7 @@ describe("TicketService", () => {
     );
 
     expect(attachments).toHaveLength(1);
-    expect(fs.unlinkSync).toHaveBeenCalledWith("/tmp/file");
+    expect(fileStorage.uploadTicketAttachment).toHaveBeenCalledWith("/tmp/file");
+    expect(fileStorage.removeTemporaryFile).toHaveBeenCalledWith("/tmp/file");
   });
 });
