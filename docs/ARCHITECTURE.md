@@ -43,13 +43,8 @@ Rules behind the matrix:
 - No layer is allowed to import from `composition`.
 - `adapters` must not import concrete infrastructure implementations directly.
 
-## Temporary Legacy Exceptions (Removal Deadline: 2026-06-30)
-These exceptions are transitional and MUST be removed by the deadline:
-
-1. `src/services/aiService.js` imports `openai` and models directly (`src/models/aiLogs.js`, `src/models/solutionModel.js`).
-
-Removal condition:
-- Replace direct model/vendor usage with application ports and infrastructure adapters wired in `src/composition`.
+## Temporary Legacy Exceptions
+No active legacy exceptions.
 
 ## When to Introduce More Complexity
 Introduce microservices ONLY if:
