@@ -1,5 +1,3 @@
-import container from "../container.js";
-
 export const createAuthMiddleware = ({ authService }) => {
   return async (req, _res, next) => {
     try {
@@ -12,7 +10,3 @@ export const createAuthMiddleware = ({ authService }) => {
     }
   };
 };
-
-const authMiddleware = createAuthMiddleware(container);
-
-export default authMiddleware;

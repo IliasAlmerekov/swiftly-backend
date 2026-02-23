@@ -32,6 +32,28 @@ class CloudinaryFileStorage {
     };
   }
 
+  async uploadUserAvatar(filePath) {
+    const result = await this.cloudinary.uploader.upload(filePath, {
+      folder: "avatars",
+      width: 500,
+      height: 500,
+      crop: "fill",
+      format: "jpg",
+      quality: "auto",
+    });
+
+    if (!result?.public_id || !result?.secure_url) {
+      throw new Error(
+        "Cloudinary upload result does not contain required fields"
+      );
+    }
+
+    return {
+      publicId: result.public_id,
+      url: result.secure_url,
+    };
+  }
+
   async removeTemporaryFile(filePath) {
     if (!filePath || typeof this.fs?.unlinkSync !== "function") {
       return;

@@ -156,6 +156,21 @@ class UserService {
       { isOnline: false }
     );
   }
+
+  async updateAvatar(userId, avatar) {
+    return this.userRepository
+      .findByIdAndUpdate(
+        userId,
+        {
+          avatar: {
+            public_id: avatar.publicId,
+            url: avatar.url,
+          },
+        },
+        { new: true }
+      )
+      .select("-password");
+  }
 }
 
 export default UserService;

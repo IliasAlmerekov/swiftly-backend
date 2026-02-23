@@ -2,6 +2,9 @@ import express from "express";
 import request from "supertest";
 import { jest } from "@jest/globals";
 import { readFile } from "node:fs/promises";
+import { createAIRoutes } from "../../src/routes/aiRoutes.js";
+import { notFound } from "../../src/middlewares/notFound.js";
+import { errorHandler } from "../../src/middlewares/errorHandler.js";
 
 const mockGenerateResponse = jest.fn();
 const mockAnalyzePriority = jest.fn();
@@ -9,35 +12,30 @@ const mockCategorizeIssue = jest.fn();
 const mockIsConfigured = jest.fn();
 const mockTestConnection = jest.fn();
 
-jest.unstable_mockModule("../../src/services/aiService.js", () => ({
-  default: {
-    generateResponse: mockGenerateResponse,
-    analyzePriority: mockAnalyzePriority,
-    categorizeIssue: mockCategorizeIssue,
-    isConfigured: mockIsConfigured,
-    testConnection: mockTestConnection,
-  },
-}));
+const aiService = {
+  generateResponse: mockGenerateResponse,
+  analyzePriority: mockAnalyzePriority,
+  categorizeIssue: mockCategorizeIssue,
+  isConfigured: mockIsConfigured,
+  testConnection: mockTestConnection,
+};
 
-jest.unstable_mockModule("../../src/middlewares/authMiddleware.js", () => ({
-  default: (req, _res, next) => {
-    req.user = { _id: "507f1f77bcf86cd799439011" };
-    next();
-  },
-}));
+const authMiddleware = (req, _res, next) => {
+  req.user = { _id: "507f1f77bcf86cd799439011" };
+  next();
+};
 
-jest.unstable_mockModule("../../src/controllers/aiController.js", () => ({
+const aiRoutes = createAIRoutes({
+  aiService,
+  authMiddleware,
   getAIRequestsStats: (_req, res) => res.status(200).json({ stats: [] }),
-}));
-
-jest.unstable_mockModule("../../src/config/redis.js", () => ({
+  logger: {
+    info: jest.fn(),
+  },
   isRedisEnabled: false,
   getRedisClient: jest.fn(),
-}));
-
-const { default: aiRoutes } = await import("../../src/routes/aiRoutes.js");
-const { notFound } = await import("../../src/middlewares/notFound.js");
-const { errorHandler } = await import("../../src/middlewares/errorHandler.js");
+  conversationTtlMs: 30 * 60 * 1000,
+});
 
 const app = express();
 app.use(express.json());
@@ -62,7 +60,10 @@ describe("ai routes error contract", () => {
   });
 
   test("returns centralized 400 error for invalid chat message", async () => {
-    const response = await request(app).post("/api/ai/chat").send({ message: "" }).expect(400);
+    const response = await request(app)
+      .post("/api/ai/chat")
+      .send({ message: "" })
+      .expect(400);
 
     expect(response.body).toMatchObject({
       code: "VALIDATION_ERROR",
@@ -102,3 +103,4 @@ describe("ai routes error contract", () => {
     expect(source).not.toMatch(/\bprocess\.env\b/);
   });
 });
+
