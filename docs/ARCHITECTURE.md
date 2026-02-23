@@ -40,6 +40,7 @@ Rules behind the matrix:
 - `adapters` translates transport/input-output formats and calls `application`.
 - `infrastructure` implements ports and integrates external systems.
 - `composition` is the only place where concrete implementations are wired together.
+- Runtime composition root is `src/composition/index.js`.
 - No layer is allowed to import from `composition`.
 - `adapters` must not import concrete infrastructure implementations directly.
 
