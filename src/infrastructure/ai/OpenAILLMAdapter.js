@@ -2,7 +2,21 @@ import OpenAI from "openai";
 
 class OpenAILLMAdapter {
   constructor({ apiKey, client } = {}) {
-    this.client = client || new OpenAI({ apiKey });
+    this.apiKey = apiKey;
+    this.client = client || null;
+  }
+
+  getClient() {
+    if (this.client) {
+      return this.client;
+    }
+
+    if (!this.apiKey) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    this.client = new OpenAI({ apiKey: this.apiKey });
+    return this.client;
   }
 
   async completeChat({
@@ -13,7 +27,7 @@ class OpenAILLMAdapter {
     frequencyPenalty,
     presencePenalty,
   }) {
-    const completion = await this.client.chat.completions.create({
+    const completion = await this.getClient().chat.completions.create({
       model,
       messages,
       max_tokens: maxTokens,
@@ -30,4 +44,3 @@ class OpenAILLMAdapter {
 }
 
 export default OpenAILLMAdapter;
-
