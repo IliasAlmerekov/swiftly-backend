@@ -6,6 +6,7 @@ import {
   detectLang,
   getOutOfScopeMessage,
   getSensitiveBlockedMessage,
+  getTechnicalErrorMessage,
   sanitizePromptForLog,
   shouldBlockSensitiveResponse,
   shouldCreateTicket,
@@ -113,10 +114,10 @@ const createGenerateAIResponseUseCase = ({
       };
     } catch (error) {
       log.error({ err: error }, "AI response generation failed");
+      const lang = detectLang(userMessage);
       return {
         type: "error",
-        message:
-          "Entschuldigung, es gab einen technischen Fehler. Bitte versuchen Sie es erneut oder erstellen Sie ein Support-Ticket für weitere Hilfe.",
+        message: getTechnicalErrorMessage(lang),
         shouldCreateTicket: true,
         metadata: { error: error.message },
       };
