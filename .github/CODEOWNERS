@@ -1,0 +1,7 @@
+# Security-sensitive files require explicit owner review.
+/.github/workflows/* @IliasAlmerekov
+/.gitlab-ci.yml @IliasAlmerekov
+/package.json @IliasAlmerekov
+/package-lock.json @IliasAlmerekov
+/.cursor/** @IliasAlmerekov
+/**/mcp.json @IliasAlmerekov

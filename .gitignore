@@ -33,6 +33,12 @@ coverage/
 *.swp
 *.swo
 
+# Local AI tool configs
+.cursor/
+.claude/
+.windsurf/
+.continue/
+
 # OS generated files
 .DS_Store
 .DS_Store?
