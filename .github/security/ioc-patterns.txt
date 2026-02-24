@@ -1,0 +1,12 @@
+syncthingy/crocodile-action
+ci-quality/code-quality-check@v1
+webhook.site
+SANDWORM_
+CARRIER
+init.templateDir
+index_project
+lint_check
+scan_dependencies
+pull_request_target
+toJSON(secrets)
+mcpServers

@@ -33,28 +33,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Validate IOC scanner
+        run: bash ./.github/scripts/security-ioc-scan-self-test.sh
       - name: Scan for known toolchain IOC patterns
-        run: |
-          set -euo pipefail
-          PATTERN='syncthingy/crocodile-action|ci-quality/code-quality-check@v1|webhook\.site|SANDWORM_|CARRIER|init\.templateDir|index_project|lint_check|scan_dependencies|pull_request_target|toJSON\(secrets\)|mcpServers'
-          TARGETS=(.github/workflows .gitlab-ci.yml package.json package-lock.json .cursor)
-
-          MATCHES=""
-          for target in "${TARGETS[@]}"; do
-            if [ -e "$target" ]; then
-              RESULT="$(grep -RInE "$PATTERN" "$target" || true)"
-              if [ -n "$RESULT" ]; then
-                MATCHES="${MATCHES}${RESULT}\n"
-              fi
-            fi
-          done
-
-          if [ -n "$MATCHES" ]; then
-            printf "Suspicious IOC patterns found:\n%b" "$MATCHES"
-            exit 1
-          fi
-
-          echo "No known SANDWORM_MODE IOC patterns found."
+        run: bash ./.github/scripts/security-ioc-scan.sh
 
   secret_scan:
     name: Secret Scan
