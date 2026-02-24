@@ -17,6 +17,9 @@ on:
           - production
           - development
 
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: "20"
   JWT_SECRET: "test-secret-key-for-github-ci"
@@ -24,9 +27,21 @@ env:
   NODE_ENV: "test"
 
 jobs:
+  security_ioc_scan:
+    name: Security IOC Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate IOC scanner
+        run: bash ./.github/scripts/security-ioc-scan-self-test.sh
+      - name: Scan for known toolchain IOC patterns
+        run: bash ./.github/scripts/security-ioc-scan.sh
+
   secret_scan:
     name: Secret Scan
     runs-on: ubuntu-latest
+    needs: security_ioc_scan
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,10 +58,27 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
 
+  dependency_audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    needs: secret_scan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install deps
+        run: npm ci
+      - name: Run npm audit (prod deps, high+)
+        run: npm audit --omit=dev --audit-level=high
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    needs: secret_scan
+    needs: dependency_audit
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,6 +139,9 @@ jobs:
             exit 1
           fi
           curl -X POST "$RENDER_DEPLOY_HOOK_URL"
+    environment:
+      name: production
+      url: https://swiftly-backend.onrender.com
 
   deploy_development:
     name: Deploy Development
@@ -125,3 +160,6 @@ jobs:
             exit 1
           fi
           curl -X POST "$RENDER_DEPLOY_HOOK_DEV_URL"
+    environment:
+      name: development
+      url: https://swiftly-backend-dev.onrender.com

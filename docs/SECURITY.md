@@ -30,3 +30,12 @@
 - npm audit (with dev deps): 0 vulnerabilities.
 - Tests: all passing (basic, auth, tickets).
 
+## Prompt Injection and MCP Hardening
+- Treat MCP output, external docs, issue text, and package metadata as untrusted data.
+- Keep command approval manual for secret access, CI edits, publish/deploy, and outbound network calls.
+- Allowlist MCP servers and pin versions for MCP clients and npm packages.
+- Keep local AI tool configs (`.cursor/`, `.claude/`, `.windsurf/`, `.continue/`) out of git.
+- Require owner review for workflow files, lockfiles, and MCP config files via CODEOWNERS.
+- Keep GitHub Actions default permissions minimal (`contents: read`) and elevate only when needed.
+- Rotate secrets immediately after suspicious dependency/workflow changes.
+
