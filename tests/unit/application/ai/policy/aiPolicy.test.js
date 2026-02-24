@@ -1,6 +1,8 @@
 import {
   buildPolicyFlags,
+  detectLang,
   evaluateITIntentHeuristics,
+  getTechnicalErrorMessage,
   shouldCreateTicket,
 } from "../../../../../src/application/ai/policy/aiPolicy.js";
 
@@ -71,6 +73,32 @@ describe("aiPolicy", () => {
           needsImmediateEscalation: flags.needsImmediateEscalation,
         })
       ).toBe(true);
+    });
+  });
+
+  describe("detectLang", () => {
+    test("detects english text", () => {
+      expect(detectLang("Hello, my monitor is not working. Can you help me?")).toBe(
+        "en"
+      );
+    });
+
+    test("detects german text", () => {
+      expect(detectLang("Hallo, mein Drucker funktioniert nicht mehr.")).toBe(
+        "de"
+      );
+    });
+
+    test("detects russian text", () => {
+      expect(detectLang("Привет, у меня не работает VPN")).toBe("ru");
+    });
+  });
+
+  describe("getTechnicalErrorMessage", () => {
+    test("returns localized technical fallback by language", () => {
+      expect(getTechnicalErrorMessage("en")).toContain("technical error");
+      expect(getTechnicalErrorMessage("de")).toContain("technischen Fehler");
+      expect(getTechnicalErrorMessage("ru")).toContain("техническая ошибка");
     });
   });
 });

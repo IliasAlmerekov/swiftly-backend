@@ -2,9 +2,14 @@ name: CI/CD
 
 on:
   pull_request:
-  push:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  push:
     tags:
       - "*"
   workflow_dispatch:
@@ -19,6 +24,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: "20"
@@ -110,6 +119,20 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm test
+
+  pr_gate:
+    name: PR Gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs:
+      - security_ioc_scan
+      - secret_scan
+      - dependency_audit
+      - lint
+      - test
+    steps:
+      - name: Confirm required checks
+        run: echo "All required PR checks passed."
 
   build:
     name: Docker Build

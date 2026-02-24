@@ -6,9 +6,23 @@ import {
   buildSolutionPrompt,
 } from "./prompts.js";
 
+const RESPONSE_LANGUAGE_NAMES = {
+  de: "Deutsch",
+  en: "English",
+  ru: "Russian",
+};
+
 const getRandomResponse = (responses, lang) => {
   const langResponses = responses[lang] || responses.de;
   return langResponses[Math.floor(Math.random() * langResponses.length)];
+};
+
+const appendLanguageDirective = (prompt, lang) => {
+  const languageName = RESPONSE_LANGUAGE_NAMES[lang] || RESPONSE_LANGUAGE_NAMES.de;
+  return `${prompt}
+
+# Reply Language (mandatory)
+Respond exclusively in ${languageName}.`;
 };
 
 const buildGenerationPlan = ({ flags, lang, solutions }) => {
@@ -28,7 +42,7 @@ const buildGenerationPlan = ({ flags, lang, solutions }) => {
       responseType: "license_request",
       directResponse: null,
       relatedSolutions: [],
-      systemPrompt: SYSTEM_PROMPTS.license_request,
+      systemPrompt: appendLanguageDirective(SYSTEM_PROMPTS.license_request, lang),
     };
   }
 
@@ -37,7 +51,10 @@ const buildGenerationPlan = ({ flags, lang, solutions }) => {
       responseType: "escalation_required",
       directResponse: null,
       relatedSolutions: [],
-      systemPrompt: SYSTEM_PROMPTS.escalation_required,
+      systemPrompt: appendLanguageDirective(
+        SYSTEM_PROMPTS.escalation_required,
+        lang
+      ),
     };
   }
 
@@ -47,7 +64,10 @@ const buildGenerationPlan = ({ flags, lang, solutions }) => {
       responseType: "solution_found",
       directResponse: null,
       relatedSolutions: solutions,
-      systemPrompt: buildSolutionPrompt(solutionsContext),
+      systemPrompt: appendLanguageDirective(
+        buildSolutionPrompt(solutionsContext),
+        lang
+      ),
     };
   }
 
@@ -55,7 +75,7 @@ const buildGenerationPlan = ({ flags, lang, solutions }) => {
     responseType: "no_solution_found",
     directResponse: null,
     relatedSolutions: [],
-    systemPrompt: SYSTEM_PROMPTS.no_solution_found,
+    systemPrompt: appendLanguageDirective(SYSTEM_PROMPTS.no_solution_found, lang),
   };
 };
 
