@@ -98,6 +98,8 @@ jobs:
           cache: npm
       - name: Install deps
         run: npm ci
+      - name: Architecture check
+        run: npm run arch:check
       - name: Lint
         run: npm run lint
       - name: Format check
