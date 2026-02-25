@@ -37,6 +37,7 @@ lint:
   script:
     - npm ci
     - npm run arch:check
+    - npm run migration:check
     - npm run lint
     - npm run format:check
   cache:
@@ -56,6 +57,8 @@ test:
   image: node:20-bullseye
   script:
     - npm ci
+    - npm run test:contracts
+    - npm run test:integration
     - npm run test
   cache:
     key: 

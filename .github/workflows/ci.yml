@@ -100,6 +100,8 @@ jobs:
         run: npm ci
       - name: Architecture check
         run: npm run arch:check
+      - name: Migration check
+        run: npm run migration:check
       - name: Lint
         run: npm run lint
       - name: Format check
@@ -119,6 +121,10 @@ jobs:
           cache: npm
       - name: Install deps
         run: npm ci
+      - name: Run contract tests
+        run: npm run test:contracts
+      - name: Run integration tests
+        run: npm run test:integration
       - name: Run tests
         run: npm test
 
