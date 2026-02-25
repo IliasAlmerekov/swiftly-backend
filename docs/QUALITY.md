@@ -24,6 +24,22 @@
 - Single Responsibility per module/class
 - No circular dependencies
 
+### Architecture boundaries
+- Run `npm run arch:check` before merge and in CI.
+- Allowed direct imports from `src/composition/**`: only `src/server.js`, `src/container.js`, `src/services/aiService.js`.
+- `src/application/**` must not import from:
+  - `src/controllers/**`
+  - `src/routes/**`
+  - `src/middlewares/**`
+  - `src/infrastructure/**`
+  - `src/composition/**`
+  - `src/models/**`
+  - `src/repositories/**`
+  - `src/services/**`
+- `src/controllers/**`, `src/routes/**`, `src/middlewares/**` must not import from `src/infrastructure/**` directly.
+- `src/infrastructure/**` must not import from `src/controllers/**`, `src/routes/**`, `src/middlewares/**`, `src/composition/**`.
+- Circular dependencies are forbidden across `src/**`.
+
 ### Performance
 - Avoid unnecessary IO and N+1 patterns
 - No premature optimization

@@ -11,6 +11,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "arch:check": "depcruise --config .dependency-cruiser.cjs --output-type err --progress none src",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write src/**/*.js",
@@ -52,6 +53,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "dependency-cruiser": "^16.10.4",
     "eslint": "^9.17.0",
     "eslint-plugin-security": "^3.0.1",
     "husky": "^9.1.7",
