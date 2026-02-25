@@ -24,6 +24,11 @@ const envSchema = z
     CLOUD_NAME: z.string().optional(),
     CLOUD_API_KEY: z.string().optional(),
     CLOUD_API_SECRET: z.string().optional(),
+    AUTH_COOKIE_SECURE: z.string().optional(),
+    AUTH_COOKIE_SAMESITE: z.string().optional(),
+    AUTH_COOKIE_DOMAIN: z.string().optional(),
+    AUTH_ACCESS_COOKIE_NAME: z.string().optional(),
+    AUTH_REFRESH_COOKIE_NAME: z.string().optional(),
   })
   .superRefine((values, ctx) => {
     if (values.NODE_ENV !== "test" && !values.MONGO_URI) {
@@ -98,4 +103,9 @@ export const config = {
   cloudinaryName: env.CLOUD_NAME,
   cloudinaryApiKey: env.CLOUD_API_KEY,
   cloudinaryApiSecret: env.CLOUD_API_SECRET,
+  authCookieSecure: env.AUTH_COOKIE_SECURE,
+  authCookieSameSite: env.AUTH_COOKIE_SAMESITE,
+  authCookieDomain: env.AUTH_COOKIE_DOMAIN,
+  authAccessCookieName: env.AUTH_ACCESS_COOKIE_NAME,
+  authRefreshCookieName: env.AUTH_REFRESH_COOKIE_NAME,
 };

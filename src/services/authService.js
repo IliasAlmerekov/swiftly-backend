@@ -2,6 +2,7 @@ import { createAuthUseCases } from "../application/auth/use-cases/index.js";
 
 class AuthService {
   constructor({ userRepo, refreshTokenRepo, passwordHasher, tokenProvider }) {
+    this.tokenProvider = tokenProvider;
     this.useCases = createAuthUseCases({
       userRepo,
       refreshTokenRepo,
@@ -32,6 +33,15 @@ class AuthService {
 
   async listAssignableAdmins(payload) {
     return this.useCases.listAssignableAdmins(payload);
+  }
+
+  resolveTokenExpiryDates({ accessToken, refreshToken }) {
+    return {
+      accessTokenExpiresAt:
+        this.tokenProvider.resolveTokenExpiryDate(accessToken),
+      refreshTokenExpiresAt:
+        this.tokenProvider.resolveTokenExpiryDate(refreshToken),
+    };
   }
 }
 

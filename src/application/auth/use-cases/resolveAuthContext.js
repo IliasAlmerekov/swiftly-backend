@@ -17,12 +17,15 @@ const parseBearerToken = authorizationHeader => {
 const isValidAccessPayload = decoded =>
   decoded && decoded.tokenType === "access" && decoded.id;
 
-export const createResolveAuthContextUseCase = ({ userRepo, tokenProvider }) => {
+export const createResolveAuthContextUseCase = ({
+  userRepo,
+  tokenProvider,
+}) => {
   const userRepositoryPort = assertUserRepoPort(userRepo);
   const tokenProviderPort = assertTokenProviderPort(tokenProvider);
 
-  return async ({ authorizationHeader }) => {
-    const token = parseBearerToken(authorizationHeader);
+  return async ({ authorizationHeader, accessToken }) => {
+    const token = accessToken || parseBearerToken(authorizationHeader);
     if (!token) {
       throw authRequiredError("Not authorized");
     }
