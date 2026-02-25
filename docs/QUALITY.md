@@ -26,6 +26,7 @@
 
 ### Architecture boundaries
 - Run `npm run arch:check` before merge and in CI.
+- Run `npm run migration:check` before merge and in CI for vertical-slice order and legacy removal gate.
 - Allowed direct imports from `src/composition/**`: only `src/server.js`, `src/container.js`, `src/services/aiService.js`.
 - `src/application/**` must not import from:
   - `src/controllers/**`

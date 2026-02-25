@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "goal": "Zero-downtime migration with stable public API contracts.",
+  "sliceOrder": ["tickets", "auth", "ai"],
+  "requiredFlow": ["transfer", "tests", "contract_check", "merge"],
+  "slices": {
+    "tickets": {
+      "stage": "merged",
+      "checkpoints": {
+        "transfer": true,
+        "tests": true,
+        "contract_check": true,
+        "merge": true
+      },
+      "notes": "Vertical slice migrated and merged without API changes."
+    },
+    "auth": {
+      "stage": "merged",
+      "checkpoints": {
+        "transfer": true,
+        "tests": true,
+        "contract_check": true,
+        "merge": true
+      },
+      "notes": "Vertical slice migrated and merged without API changes."
+    },
+    "ai": {
+      "stage": "merged",
+      "checkpoints": {
+        "transfer": true,
+        "tests": true,
+        "contract_check": true,
+        "merge": true
+      },
+      "notes": "Vertical slice migrated and merged without API changes."
+    }
+  },
+  "legacyLayer": {
+    "status": "retained",
+    "removeAfterIntegrationGreen": true,
+    "integrationGreen": false,
+    "integrationSuite": "npm run test:integration",
+    "legacyPaths": [
+      "src/services/ticketService.js",
+      "src/services/authService.js",
+      "src/services/aiService.js",
+      "src/container.js"
+    ],
+    "notes": "Legacy compatibility layer stays until integration suite is green after explicit removal decision."
+  }
+}

@@ -5,9 +5,10 @@ Backend API for the Swiftly Helpdesk platform (Node.js + Express + MongoDB).
 ## Quick Start
 
 ```bash
-npm install
-cp .env.example .env
-npm run dev
+docker compose up -d
+docker compose exec app npm ci
+docker compose exec app cp .env.example .env
+docker compose exec app npm run dev
 ```
 
 ## Main Commands
@@ -15,8 +16,11 @@ npm run dev
 - `npm run dev` - run in development mode
 - `npm start` - run production server
 - `npm test` - run tests
+- `npm run test:contracts` - run API contract tests for `tickets`, `auth`, `ai`
+- `npm run test:integration` - run integration tests
 - `npm run lint` - run linter
 - `npm run format:check` - check formatting
+- `npm run migration:check` - validate vertical-slice migration ledger and legacy removal gate
 - `npm run secrets:scan` - local secret scan
 
 ## CI/CD
