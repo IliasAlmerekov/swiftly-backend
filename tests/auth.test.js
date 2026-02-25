@@ -20,6 +20,12 @@ describe("Authentication Tests", () => {
     expect(response.body).toHaveProperty("accessToken");
     expect(response.body).toHaveProperty("refreshToken");
     expect(response.body).toHaveProperty("userId");
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("__Host-swiftly_helpdesk_at="),
+        expect.stringContaining("__Host-swiftly_helpdesk_rt="),
+      ])
+    );
   });
 
   test("should fail to register user with missing required fields", async () => {
@@ -77,6 +83,12 @@ describe("Authentication Tests", () => {
     expect(response.body).toHaveProperty("accessToken");
     expect(response.body).toHaveProperty("refreshToken");
     expect(response.body).toHaveProperty("userId");
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("__Host-swiftly_helpdesk_at="),
+        expect.stringContaining("__Host-swiftly_helpdesk_rt="),
+      ])
+    );
   });
 
   test("should fail to login with wrong password", async () => {
@@ -137,6 +149,32 @@ describe("Authentication Tests", () => {
     expect(refreshResponse.body.refreshToken).not.toBe(
       registerResponse.body.refreshToken
     );
+  });
+
+  test("should refresh tokens using refresh cookie when body is empty", async () => {
+    const testUser = {
+      email: "refresh-cookie@example.com",
+      password: "password123",
+      name: "Refresh Cookie User",
+    };
+
+    const registerResponse = await request(app)
+      .post("/api/auth/register")
+      .send(testUser)
+      .expect(201);
+
+    const refreshCookie = registerResponse.headers["set-cookie"].find(cookie =>
+      cookie.startsWith("__Host-swiftly_helpdesk_rt=")
+    );
+
+    const refreshResponse = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", refreshCookie)
+      .send({})
+      .expect(200);
+
+    expect(refreshResponse.body).toHaveProperty("accessToken");
+    expect(refreshResponse.body).toHaveProperty("refreshToken");
   });
 
   test("should reject reuse of rotated refresh token and allow latest token", async () => {
@@ -202,7 +240,10 @@ describe("Authentication Tests", () => {
       .send({ refreshToken: registerResponse.body.refreshToken })
       .expect(401);
 
-    expect(refreshAfterLogout.body).toHaveProperty("code", "AUTH_REFRESH_REVOKED");
+    expect(refreshAfterLogout.body).toHaveProperty(
+      "code",
+      "AUTH_REFRESH_REVOKED"
+    );
   });
 
   test("should revoke all sessions and block refresh tokens from each session", async () => {
@@ -262,5 +303,30 @@ describe("Authentication Tests", () => {
       .set("Authorization", `Bearer ${registerResponse.body.refreshToken}`)
       .expect(401);
   });
-});
 
+  test("should return user context from /auth/me using access cookie", async () => {
+    const testUser = {
+      email: "me-cookie@example.com",
+      password: "password123",
+      name: "Me Cookie User",
+    };
+
+    const registerResponse = await request(app)
+      .post("/api/auth/register")
+      .send(testUser)
+      .expect(201);
+
+    const accessCookie = registerResponse.headers["set-cookie"].find(cookie =>
+      cookie.startsWith("__Host-swiftly_helpdesk_at=")
+    );
+
+    const meResponse = await request(app)
+      .get("/api/auth/me")
+      .set("Cookie", accessCookie)
+      .expect(200);
+
+    expect(meResponse.body).toHaveProperty("authenticated", true);
+    expect(meResponse.body).toHaveProperty("user");
+    expect(meResponse.body.user).toHaveProperty("email", testUser.email);
+  });
+});

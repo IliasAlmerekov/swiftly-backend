@@ -9,10 +9,17 @@ const createRes = () => ({
 describe("authMiddleware", () => {
   test("passes extracted user context to req.user", async () => {
     const authService = {
-      resolveAuthContext: jest.fn().mockResolvedValue({ _id: "u1", role: "user" }),
+      resolveAuthContext: jest
+        .fn()
+        .mockResolvedValue({ _id: "u1", role: "user" }),
     };
     const middleware = createAuthMiddleware({ authService });
-    const req = { headers: { authorization: "Bearer access-token" } };
+    const req = {
+      headers: {
+        authorization: "Bearer access-token",
+        cookie: "__Host-swiftly_helpdesk_at=cookie-access-token",
+      },
+    };
     const res = createRes();
     const next = jest.fn();
 
@@ -20,6 +27,7 @@ describe("authMiddleware", () => {
 
     expect(authService.resolveAuthContext).toHaveBeenCalledWith({
       authorizationHeader: "Bearer access-token",
+      accessToken: "cookie-access-token",
     });
     expect(req.user).toEqual({ _id: "u1", role: "user" });
     expect(next).toHaveBeenCalledWith();
