@@ -1,6 +1,9 @@
 import { config } from "./env.js";
 
-const REQUIRED_ALLOWED_ORIGINS = ["https://swiftly-helpdesk.netlify.app"];
+const REQUIRED_ALLOWED_ORIGINS = [
+  "https://swiftly-helpdesk.netlify.app",
+  "https://scooteq-helpdesk.netlify.app",
+];
 
 const configuredOrigins = (config.corsOrigin || "")
   .split(",")
@@ -33,5 +36,8 @@ export const corsOptions = {
 
     return callback(new Error("Not allowed by CORS"));
   },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
   optionsSuccessStatus: 204,
 };
