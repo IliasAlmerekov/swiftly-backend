@@ -8,6 +8,10 @@ import {
   aiConversationParamDto,
   aiMessageDto,
 } from "../validation/schemas.js";
+import {
+  detectLang,
+  getTechnicalErrorMessage,
+} from "../application/ai/policy/aiPolicy.js";
 
 export const createAIRoutes = ({
   aiService,
@@ -21,8 +25,20 @@ export const createAIRoutes = ({
   const router = express.Router();
   const conversationStore = new Map();
   const resolvedConversationTtlMs = conversationTtlMs || 30 * 60 * 1000;
+  const AI_RESPONSE_TIMEOUT_MS = 25_000;
+  const REDIS_OPERATION_TIMEOUT_MS = 2_000;
   const conversationKey = (userId, sessionId) =>
     `ai:conversation:${userId}:${sessionId}`;
+
+  const withTimeout = (promise, timeoutMs, timeoutMessage) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        const timeoutError = new Error(timeoutMessage);
+        timeoutError.code = "TIMEOUT";
+        setTimeout(() => reject(timeoutError), timeoutMs);
+      }),
+    ]);
 
   router.use(authMiddleware);
 
@@ -39,9 +55,24 @@ export const createAIRoutes = ({
 
   const getConversation = async (userId, sessionId) => {
     if (isRedisEnabled) {
-      const client = await getRedisClient();
-      const raw = await client.get(conversationKey(userId, sessionId));
-      return raw ? JSON.parse(raw) : null;
+      try {
+        const client = await withTimeout(
+          getRedisClient(),
+          REDIS_OPERATION_TIMEOUT_MS,
+          "Redis client connection timeout"
+        );
+        const raw = await withTimeout(
+          client.get(conversationKey(userId, sessionId)),
+          REDIS_OPERATION_TIMEOUT_MS,
+          "Redis get conversation timeout"
+        );
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        logger.warn(
+          { err: error, userId, sessionId },
+          "Redis unavailable for getConversation, using in-memory fallback"
+        );
+      }
     }
 
     return conversationStore.get(conversationKey(userId, sessionId)) || null;
@@ -49,20 +80,35 @@ export const createAIRoutes = ({
 
   const setConversation = async (userId, sessionId, entry) => {
     if (isRedisEnabled) {
-      const client = await getRedisClient();
-      const ttlSeconds = Math.max(
-        1,
-        Math.floor(resolvedConversationTtlMs / 1000)
-      );
+      try {
+        const client = await withTimeout(
+          getRedisClient(),
+          REDIS_OPERATION_TIMEOUT_MS,
+          "Redis client connection timeout"
+        );
+        const ttlSeconds = Math.max(
+          1,
+          Math.floor(resolvedConversationTtlMs / 1000)
+        );
 
-      await client.set(
-        conversationKey(userId, sessionId),
-        JSON.stringify(entry),
-        {
-          EX: ttlSeconds,
-        }
-      );
-      return;
+        await withTimeout(
+          client.set(
+            conversationKey(userId, sessionId),
+            JSON.stringify(entry),
+            {
+              EX: ttlSeconds,
+            }
+          ),
+          REDIS_OPERATION_TIMEOUT_MS,
+          "Redis set conversation timeout"
+        );
+        return;
+      } catch (error) {
+        logger.warn(
+          { err: error, userId, sessionId },
+          "Redis unavailable for setConversation, using in-memory fallback"
+        );
+      }
     }
 
     conversationStore.set(conversationKey(userId, sessionId), entry);
@@ -70,9 +116,24 @@ export const createAIRoutes = ({
 
   const deleteConversation = async (userId, sessionId) => {
     if (isRedisEnabled) {
-      const client = await getRedisClient();
-      await client.del(conversationKey(userId, sessionId));
-      return;
+      try {
+        const client = await withTimeout(
+          getRedisClient(),
+          REDIS_OPERATION_TIMEOUT_MS,
+          "Redis client connection timeout"
+        );
+        await withTimeout(
+          client.del(conversationKey(userId, sessionId)),
+          REDIS_OPERATION_TIMEOUT_MS,
+          "Redis delete conversation timeout"
+        );
+        return;
+      } catch (error) {
+        logger.warn(
+          { err: error, userId, sessionId },
+          "Redis unavailable for deleteConversation, using in-memory fallback"
+        );
+      }
     }
 
     conversationStore.delete(conversationKey(userId, sessionId));
@@ -123,10 +184,30 @@ export const createAIRoutes = ({
         "AI chat message received"
       );
 
-      const response = await aiService.generateResponse(
-        message,
-        conversationHistory
-      );
+      let response;
+      try {
+        response = await withTimeout(
+          aiService.generateResponse(message, conversationHistory),
+          AI_RESPONSE_TIMEOUT_MS,
+          "AI response generation timeout"
+        );
+      } catch (error) {
+        const lang = detectLang(message);
+        logger.warn(
+          { err: error, sessionId: effectiveSessionId, userId },
+          "AI response timeout/failure, returning graceful fallback"
+        );
+        response = {
+          type: "error",
+          message: getTechnicalErrorMessage(lang),
+          shouldCreateTicket: true,
+          relatedSolutions: [],
+          metadata: {
+            timeout: true,
+            fallback: "technical_error_message",
+          },
+        };
+      }
 
       conversationHistory.push(
         { role: "user", content: message },
