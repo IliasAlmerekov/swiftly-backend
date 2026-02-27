@@ -40,7 +40,8 @@ const defaultCookieNames = resolveDefaultAuthCookieNames(config.nodeEnv);
 const accessCookieName =
   process.env.AUTH_ACCESS_COOKIE_NAME?.trim() || defaultCookieNames.accessToken;
 const refreshCookieName =
-  process.env.AUTH_REFRESH_COOKIE_NAME?.trim() || defaultCookieNames.refreshToken;
+  process.env.AUTH_REFRESH_COOKIE_NAME?.trim() ||
+  defaultCookieNames.refreshToken;
 
 const baseCookieOptions = {
   httpOnly: true,
