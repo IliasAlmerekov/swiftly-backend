@@ -1,0 +1,44 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+profile = "project"
+approval_policy = "never"
+web_search = "cached"
+hide_agent_reasoning = false
+suppress_unstable_features_warning = true
+
+[history]
+persistence = "save-all"
+max_bytes = 150000000
+
+[features]
+shell_tool = true
+shell_snapshot = true
+unified_exec = true
+apply_patch_freeform = true
+multi_agent = true
+
+[agents]
+max_threads = 4
+max_depth = 1
+
+[agents.explorer]
+description = "Read-only codebase exploration for swiftly-backend. Map architecture, dependencies, and edit points with exact file/symbol references."
+config_file = "agents/explorer.toml"
+
+[agents.worker]
+description = "Implement minimal production-safe changes for Node.js/Express/Mongo stack with tests and container-first verification."
+config_file = "agents/worker.toml"
+
+[agents.reviewer]
+description = "Read-only reviewer focused on security, correctness, regressions, architecture boundaries, and test sufficiency."
+config_file = "agents/reviewer.toml"
+
+[agents.tester]
+description = "Testing specialist for deterministic Jest unit/integration/contract tests and CI-safe test workflows."
+config_file = "agents/tester.toml"
+
+[profiles.project]
+model = "gpt-5.3-codex"
+model_reasoning_effort = "medium"
+model_auto_compact_token_limit = 120000
+temperature = 0.1
