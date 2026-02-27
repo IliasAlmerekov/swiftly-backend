@@ -21,10 +21,26 @@ const secureByDefault = config.isProduction;
 const sameSite = normalizeSameSite(process.env.AUTH_COOKIE_SAMESITE);
 const domain = process.env.AUTH_COOKIE_DOMAIN?.trim() || undefined;
 
+export const resolveDefaultAuthCookieNames = nodeEnv => {
+  if (nodeEnv === "development") {
+    return {
+      accessToken: "swiftly_helpdesk_at",
+      refreshToken: "swiftly_helpdesk_rt",
+    };
+  }
+
+  return {
+    accessToken: "__Host-swiftly_helpdesk_at",
+    refreshToken: "__Host-swiftly_helpdesk_rt",
+  };
+};
+
+const defaultCookieNames = resolveDefaultAuthCookieNames(config.nodeEnv);
+
 const accessCookieName =
-  process.env.AUTH_ACCESS_COOKIE_NAME?.trim() || "__Host-swiftly_helpdesk_at";
+  process.env.AUTH_ACCESS_COOKIE_NAME?.trim() || defaultCookieNames.accessToken;
 const refreshCookieName =
-  process.env.AUTH_REFRESH_COOKIE_NAME?.trim() || "__Host-swiftly_helpdesk_rt";
+  process.env.AUTH_REFRESH_COOKIE_NAME?.trim() || defaultCookieNames.refreshToken;
 
 const baseCookieOptions = {
   httpOnly: true,
