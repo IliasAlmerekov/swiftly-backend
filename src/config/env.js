@@ -64,6 +64,15 @@ const envSchema = z
         path: ["JWT_SECRET"],
       });
     }
+
+    if (values.NODE_ENV === "production" && !values.JWT_REFRESH_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "JWT_REFRESH_SECRET is required in production (must differ from JWT_SECRET)",
+        path: ["JWT_REFRESH_SECRET"],
+      });
+    }
   });
 
 const parsed = envSchema.safeParse(process.env);
@@ -80,8 +89,7 @@ const resolvedJwtSecret =
 
 const resolvedRefreshSecret =
   env.JWT_REFRESH_SECRET ||
-  env.JWT_SECRET ||
-  (env.NODE_ENV === "test" ? "test-refresh-secret" : undefined);
+  (env.NODE_ENV === "test" ? "test-refresh-secret" : env.JWT_SECRET);
 
 export const config = {
   nodeEnv: env.NODE_ENV,

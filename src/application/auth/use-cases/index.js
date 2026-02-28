@@ -11,7 +11,12 @@ export const createAuthUseCases = ({
   passwordHasher,
   tokenProvider,
 }) => ({
-  register: createRegisterUseCase({ userRepo, refreshTokenRepo, tokenProvider }),
+  register: createRegisterUseCase({
+    userRepo,
+    refreshTokenRepo,
+    passwordHasher,
+    tokenProvider,
+  }),
   login: createLoginUseCase({
     userRepo,
     refreshTokenRepo,
@@ -20,6 +25,9 @@ export const createAuthUseCases = ({
   }),
   refresh: createRefreshUseCase({ userRepo, refreshTokenRepo, tokenProvider }),
   logout: createLogoutUseCase({ refreshTokenRepo, tokenProvider }),
-  resolveAuthContext: createResolveAuthContextUseCase({ userRepo, tokenProvider }),
+  resolveAuthContext: createResolveAuthContextUseCase({
+    userRepo,
+    tokenProvider,
+  }),
   listAssignableAdmins: createListAssignableAdminsUseCase({ userRepo }),
 });

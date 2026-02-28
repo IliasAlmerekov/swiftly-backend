@@ -4,7 +4,6 @@
 // matching the production auth contract (see docs/AUTH_CONTRACT.md).
 
 import request from "supertest";
-import bcrypt from "bcryptjs";
 import app from "./app.js";
 import User from "../src/models/userModel.js";
 
@@ -75,11 +74,10 @@ export const createUserSession = async (userData = {}) => {
 };
 
 /**
- * Create an admin user directly in the DB, then log in via cookie auth.
+ * Create an authenticated admin session.
  *
- * Admin creation bypasses the registration endpoint because registration
- * ignores the `role` field for security.  The password is hashed explicitly
- * because the Mongoose pre-save hook was removed (BP 1.2).
+ * The helper registers a normal user via public API (stable auth flow),
+ * then promotes that user to admin directly in DB for authorization tests.
  *
  * @param {Object} [adminData] - Override admin fields
  * @returns {Promise<{agent: import("supertest").SuperAgentTest, csrfToken: string}>}
@@ -93,21 +91,22 @@ export const createAdminSession = async (adminData = {}) => {
     ...adminData,
   };
 
-  await User.create({
-    ...defaults,
-    password: await bcrypt.hash(defaults.password, 12),
+  const session = await createUserSession({
+    email: defaults.email,
+    password: defaults.password,
+    name: defaults.name,
   });
 
-  const agent = request.agent(app);
-  const csrfToken = await bootstrapCsrf(agent);
+  const updatedAdmin = await User.findOneAndUpdate(
+    { email: defaults.email.toLowerCase() },
+    { role: "admin" },
+    { new: true }
+  );
 
-  await agent
-    .post("/api/auth/login")
-    .set("X-CSRF-Token", csrfToken)
-    .send({ email: defaults.email, password: defaults.password })
-    .expect(200);
+  expect(updatedAdmin).toBeTruthy();
+  expect(updatedAdmin.role).toBe("admin");
 
-  return { agent, csrfToken };
+  return session;
 };
 
 /**

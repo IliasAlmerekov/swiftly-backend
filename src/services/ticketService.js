@@ -52,21 +52,24 @@ class TicketService {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    const stats = [];
-    for (let month = 0; month <= currentMonth; month++) {
+    const months = Array.from({ length: currentMonth + 1 }, (_, month) => {
       const startDate = new Date(currentYear, month, 1);
       const endDate = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
-      const count = await this.ticketRepository.countByDateRange(
-        startDate,
-        endDate
-      );
-      stats.push({
-        month: getMonthName(month),
-        monthNumber: month + 1,
-        count,
-        year: currentYear,
-      });
-    }
+      return { month, startDate, endDate };
+    });
+
+    const counts = await Promise.all(
+      months.map(({ startDate, endDate }) =>
+        this.ticketRepository.countByDateRange(startDate, endDate)
+      )
+    );
+
+    const stats = months.map(({ month }, i) => ({
+      month: getMonthName(month),
+      monthNumber: month + 1,
+      count: counts[i],
+      year: currentYear,
+    }));
 
     return {
       stats,
@@ -80,7 +83,6 @@ class TicketService {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    const stats = [];
     let startMonth = currentMonth - 5;
     let yearOffset = 0;
     if (startMonth < 0) {
@@ -88,28 +90,34 @@ class TicketService {
       startMonth = 12 + startMonth;
     }
 
-    for (let i = 0; i < 6; i++) {
+    const periods = Array.from({ length: 6 }, (_, i) => {
       let month = startMonth + i;
       let year = currentYear + yearOffset;
       if (month >= 12) {
         month -= 12;
         year = currentYear;
       }
-
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
-      const count = await this.ticketRepository.countByOwnerAndDateRange(
-        user._id,
-        startDate,
-        endDate
-      );
-      stats.push({
-        month: getMonthName(month),
-        monthNumber: month + 1,
-        count,
-        year,
-      });
-    }
+      return { month, year, startDate, endDate };
+    });
+
+    const counts = await Promise.all(
+      periods.map(({ startDate, endDate }) =>
+        this.ticketRepository.countByOwnerAndDateRange(
+          user._id,
+          startDate,
+          endDate
+        )
+      )
+    );
+
+    const stats = periods.map(({ month, year }, i) => ({
+      month: getMonthName(month),
+      monthNumber: month + 1,
+      count: counts[i],
+      year,
+    }));
 
     return {
       stats,
