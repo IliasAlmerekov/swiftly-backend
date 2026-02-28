@@ -20,7 +20,10 @@ const createUseCase = () => {
   return {
     userRepo,
     tokenProvider,
-    useCase: createResolveAuthContextUseCase({ userRepo, tokenProvider }),
+    useCase: createResolveAuthContextUseCase({
+      userRepo,
+      tokenProvider,
+    }),
   };
 };
 
@@ -43,7 +46,7 @@ describe("auth resolveAuthContext use-case", () => {
     });
 
     await expect(
-      useCase({ authorizationHeader: "Bearer invalid-token" })
+      useCase({ accessToken: "invalid-token" })
     ).rejects.toMatchObject({
       statusCode: 401,
       code: "AUTH_INVALID",
@@ -58,7 +61,7 @@ describe("auth resolveAuthContext use-case", () => {
     });
 
     await expect(
-      useCase({ authorizationHeader: "Bearer refresh-token" })
+      useCase({ accessToken: "refresh-token" })
     ).rejects.toMatchObject({
       statusCode: 401,
       code: "AUTH_INVALID",
@@ -74,7 +77,7 @@ describe("auth resolveAuthContext use-case", () => {
     userRepo.findByIdWithoutPassword.mockResolvedValue(null);
 
     await expect(
-      useCase({ authorizationHeader: "Bearer access-token" })
+      useCase({ accessToken: "access-token" })
     ).rejects.toMatchObject({
       statusCode: 401,
       code: "AUTH_INVALID",
@@ -90,9 +93,9 @@ describe("auth resolveAuthContext use-case", () => {
     });
     userRepo.findByIdWithoutPassword.mockResolvedValue(user);
 
-    await expect(
-      useCase({ authorizationHeader: "Bearer access-token" })
-    ).resolves.toEqual(user);
+    await expect(useCase({ accessToken: "access-token" })).resolves.toEqual(
+      user
+    );
   });
 
   test("accepts direct access token input for cookie-based auth", async () => {
@@ -107,5 +110,32 @@ describe("auth resolveAuthContext use-case", () => {
     await expect(
       useCase({ accessToken: "cookie-access-token" })
     ).resolves.toEqual(user);
+  });
+
+  test("rejects bearer-only auth", async () => {
+    const { useCase } = createUseCase();
+
+    await expect(
+      useCase({ authorizationHeader: "Bearer access-token" })
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: "AUTH_REQUIRED",
+    });
+  });
+
+  test.each([
+    "Bearer token extra",
+    "Bearer    token",
+    "bearer token",
+    "Bearer ",
+  ])("rejects malformed authorization header: %s", async malformedHeader => {
+    const { useCase } = createUseCase();
+
+    await expect(
+      useCase({ authorizationHeader: malformedHeader })
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: "AUTH_REQUIRED",
+    });
   });
 });

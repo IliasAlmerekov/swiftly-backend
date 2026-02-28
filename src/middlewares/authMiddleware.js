@@ -10,7 +10,6 @@ export const createAuthMiddleware = ({ authService }) => {
       );
 
       req.user = await authService.resolveAuthContext({
-        authorizationHeader: req.headers.authorization,
         accessToken: accessTokenFromCookie,
       });
       return next();

@@ -18,3 +18,14 @@
 - REDIS_URL
 - AI_CONVERSATION_TTL_MS
 
+## Auth Runtime Contract (Phase 2)
+- Phase-2 strict cookie-session contract switched on `2026-02-27`.
+- `POST /api/auth/register` and `POST /api/auth/login` return `{ user, authenticated: true }`.
+- `POST /api/auth/refresh` returns `{ authenticated: true }` and reads refresh token from cookie only.
+- Browser protected auth routes (`/api/auth/logout`, `/api/auth/me`, `/api/auth/admins`) require cookie-based access context.
+
+## Removed Environment Variables
+- `AUTH_LEGACY_TOKEN_BODY`
+- `AUTH_LEGACY_BEARER_AUTH`
+- `AUTH_LEGACY_REFRESH_BODY`
+

@@ -3,38 +3,48 @@
 ## Scope
 
 - Backend API (Express + MongoDB + Redis)
-- Auth via JWT bearer (current implementation, no cookies yet)
-- Target migration contract: `docs/adr/0007-auth-cookie-session-contract.md`
+- Auth migration track: Phase 1 runtime compatibility -> Phase 2 strict cookie-session target
+- Contract sources: `docs/openapi.json`, `docs/AUTH_CONTRACT.md`, `docs/adr/0007-auth-cookie-session-contract.md`
 - External services: Cloudinary, OpenAI
 
 ## Assumptions
 
-- TLS is terminated by the reverse proxy or platform (Render/NGINX/etc).
+- TLS is terminated by reverse proxy/platform (Render/NGINX/etc).
 - Secrets are provided via environment variables.
-- Clients are browser-based and use Authorization: Bearer tokens.
+- Browser clients use `credentials: include` for authenticated calls.
+- Runtime is in strict cookie-session mode for browser auth.
 
-## Checklist (Implemented)
+## Current Runtime Controls (as-is)
+
+- Cookie auth is enabled (`HttpOnly`; `Secure` in production config).
+- Bearer compatibility is removed for browser auth routes.
+- Auth endpoints return strict session payloads only (`{ user, authenticated }` / `{ authenticated }`).
+- Refresh token source is cookie-only for `/api/auth/refresh`.
+- CSRF protection is mandatory for all browser state-changing methods (`POST`, `PUT`, `PATCH`, `DELETE`) using `X-CSRF-Token` double-submit cookie validation.
+- Credentialed CORS must use explicit origin allowlist (no wildcard with credentials).
+- Standardized error shape is present: `{ code, message, details? }`.
+- Request logging redacts `Authorization`, `Cookie`, and `X-CSRF-Token` headers.
+- OpenAPI coverage note: current `docs/openapi.json` covers auth + health endpoints; CSRF runtime enforcement still applies to all state-changing `/api` routes.
+
+## Checklist (Implemented / Required Baseline)
 
 - Input validation at boundaries (Zod DTOs).
 - Centralized error handling with safe responses.
 - Rate limiting on auth + AI routes.
 - Security headers via Helmet + API CSP.
-- Request size limit.
-- Logging with redaction for auth headers.
+- Request size limits.
+- Logging with redaction for sensitive auth/cookie fields.
 - Non-root container user.
-- Dependency vulnerability scan (npm audit).
+- Dependency vulnerability scan (`npm audit`).
 
 ## Remaining Risks / Out of Scope
-
-- No absolute guarantee of security; ongoing monitoring required.
-- CSRF is not applicable if no cookies are used.
-- Swagger UI is exposed; ensure it is safe for your environment.
-- External providers (OpenAI/Cloudinary/Redis) availability and security.
+- Swagger UI exposure remains environment-specific risk.
+- External providers (OpenAI/Cloudinary/Redis) availability and security are external dependencies.
 
 ## Evidence
 
-- npm audit (with dev deps): 0 vulnerabilities.
-- Tests: all passing (basic, auth, tickets).
+- Security checks should include lint, tests, and dependency scanning in CI.
+- Contract checks should validate OpenAPI and auth contract consistency during migration.
 
 ## Prompt Injection and MCP Hardening
 
