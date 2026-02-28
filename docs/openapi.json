@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Swiftly Helpdesk API",
-    "version": "1.0.0",
-    "description": "REST API for the Swiftly Helpdesk backend."
+    "version": "1.3.0-phase-2-final",
+    "description": "REST API for the Swiftly Helpdesk backend. Phase-2 strict cookie-session + mandatory CSRF runtime switched on 2026-02-27. Runtime enforces CSRF for all state-changing `/api` endpoints (`POST`, `PUT`, `PATCH`, `DELETE`); this OpenAPI document currently covers auth + health endpoints only."
   },
   "servers": [
     {
@@ -13,13 +13,27 @@
   ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-swiftly_helpdesk_at",
+        "description": "Default non-development access-token cookie name. Development default is `swiftly_helpdesk_at`; runtime name is configurable via auth cookie settings."
       }
     },
     "schemas": {
+      "AuthUser": {
+        "type": "object",
+        "required": ["_id", "email", "name", "role"],
+        "properties": {
+          "_id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string" },
+          "role": {
+            "type": "string",
+            "enum": ["user", "support1", "admin"]
+          }
+        }
+      },
       "AuthRegisterRequest": {
         "type": "object",
         "required": ["email", "password", "name"],
@@ -34,16 +48,48 @@
         "required": ["email", "password"],
         "properties": {
           "email": { "type": "string", "format": "email" },
-          "password": { "type": "string" }
+          "password": { "type": "string" },
+          "keepLoggedIn": {
+            "type": "boolean",
+            "description": "Compatibility input. Optional in current runtime."
+          }
         }
       },
-      "AuthResponse": {
+      "AuthSessionResponse": {
+        "type": "object",
+        "required": ["user", "authenticated"],
+        "properties": {
+          "user": { "$ref": "#/components/schemas/AuthUser" },
+          "authenticated": { "type": "boolean", "enum": [true] }
+        }
+      },
+      "AuthRefreshRequest": {
+        "type": "object",
+        "description": "Refresh token is resolved from cookie. Request body refreshToken is not supported."
+      },
+      "AuthLogoutRequest": {
         "type": "object",
         "properties": {
-          "token": { "type": "string" },
-          "userId": { "type": "string" }
+          "refreshToken": {
+            "type": "string",
+            "description": "Optional. If omitted, runtime reads refresh token from cookie."
+          },
+          "allSessions": {
+            "type": "boolean",
+            "default": false,
+            "description": "Optional. When true, revokes all active sessions and does not require refreshToken."
+          }
         }
       },
+      "AuthLogoutResponse": {
+        "type": "object",
+        "required": ["success", "message"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "message": { "type": "string" }
+        }
+      },
+      "AdminsResponse": { "type": "array", "items": { "$ref": "#/components/schemas/AuthUser" } },
       "HealthResponse": {
         "type": "object",
         "properties": {
@@ -54,11 +100,21 @@
       },
       "ErrorResponse": {
         "type": "object",
+        "required": ["code", "message"],
         "properties": {
-          "message": { "type": "string" },
           "code": { "type": "string" },
-          "details": { "type": "array", "items": { "type": "object" } }
+          "message": { "type": "string" },
+          "details": {}
         }
+      }
+    },
+    "parameters": {
+      "CsrfHeader": {
+        "name": "X-CSRF-Token",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 1 },
+        "description": "Required for state-changing browser requests. Must match CSRF cookie token."
       }
     }
   },
@@ -91,7 +147,9 @@
     },
     "/api/auth/register": {
       "post": {
-        "summary": "Register a user",
+        "summary": "Register a user and create a cookie session",
+        "description": "Returns strict session payload and sets HttpOnly auth cookies. Register payload is strict: only email/password/name are accepted; extra fields (including keepLoggedIn) are rejected with 400 VALIDATION_ERROR.",
+        "parameters": [{ "$ref": "#/components/parameters/CsrfHeader" }],
         "requestBody": {
           "required": true,
           "content": {
@@ -102,15 +160,45 @@
         },
         "responses": {
           "201": {
-            "description": "User registered",
+            "description": "User registered and authenticated via cookies",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string" },
+                "description": "HttpOnly auth cookies."
+              }
+            },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthResponse" }
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
               }
             }
           },
           "400": {
             "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (invalid credentials/session)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing or invalid CSRF token (CSRF_INVALID)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }
@@ -122,7 +210,9 @@
     },
     "/api/auth/login": {
       "post": {
-        "summary": "Login a user",
+        "summary": "Login and create a cookie session",
+        "description": "Returns strict session payload and sets HttpOnly auth cookies.",
+        "parameters": [{ "$ref": "#/components/parameters/CsrfHeader" }],
         "requestBody": {
           "required": true,
           "content": {
@@ -133,15 +223,212 @@
         },
         "responses": {
           "200": {
-            "description": "Login success",
+            "description": "Authenticated via cookies",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string" },
+                "description": "HttpOnly auth cookies."
+              }
+            },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthResponse" }
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
+            "description": "Unauthorized (invalid credentials/session)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing or invalid CSRF token (CSRF_INVALID)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Return authenticated user profile",
+        "description": "Cookie-session auth required.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Authenticated session",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing/invalid session)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "summary": "Refresh session from cookie",
+        "description": "Uses refresh token from cookie only.",
+        "parameters": [{ "$ref": "#/components/parameters/CsrfHeader" }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuthRefreshRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session refreshed and cookies rotated",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string" },
+                "description": "Rotated HttpOnly auth cookies."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["authenticated"],
+                  "properties": {
+                    "authenticated": { "type": "boolean", "enum": [true] }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (missing/invalid refreshToken)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (invalid/expired refresh token)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing or invalid CSRF token (CSRF_INVALID)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Logout current session or all sessions",
+        "description": "Authenticated cookie session required.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/CsrfHeader" }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuthLogoutRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logout successful and auth cookies cleared",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string" },
+                "description": "Expired auth cookies."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthLogoutResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing/invalid session)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (for example, refreshToken required unless allSessions=true)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing or invalid CSRF token (CSRF_INVALID)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/admins": {
+      "get": {
+        "summary": "List assignable admins",
+        "description": "Cookie-session auth required.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Assignable admins list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminsResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing/invalid session)",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }

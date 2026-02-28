@@ -11,6 +11,7 @@ Hard requirements:
 - Handle errors explicitly; avoid silent failures.
 - Validate external input at boundaries; avoid insecure defaults.
 - Never expose secrets in code/logs.
+- Use Context7 MCP to have up-to-date stack documentation and architecture guidelines.
 
 Project-specific execution:
 - Stack: Node.js 20 + Express + MongoDB.
