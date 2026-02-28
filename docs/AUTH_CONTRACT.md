@@ -2,6 +2,15 @@
 
 Phase-2 strict runtime switched on `2026-02-27`.
 
+## Acceptance Baseline (Docs/Contract Scope)
+
+- [ ] `docs/openapi.json` includes `GET /api/auth/csrf` with `200 { csrfToken }`.
+- [ ] Auth session endpoints (`POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`) return `{ user, authenticated: true }`.
+- [ ] `POST /api/auth/refresh` is cookie-refresh only and returns `{ authenticated: true }`.
+- [ ] Browser auth protected endpoints (`POST /api/auth/logout`, `GET /api/auth/me`, `GET /api/auth/admins`) are cookie-only (no bearer fallback).
+- [ ] Browser state-changing auth endpoints require `X-CSRF-Token`; invalid/missing token returns `403 CSRF_INVALID`.
+- [ ] `POST /api/auth/logout` response message variants are documented: `"Logged out"` and `"Logged out from all sessions"`.
+
 ## Runtime Rules
 
 - Browser auth is cookie-session only.
@@ -49,6 +58,18 @@ Response `200`:
 {
   "success": true,
   "message": "Logged out"
+}
+```
+
+`message` variants: `"Logged out"` or `"Logged out from all sessions"`.
+
+### `GET /api/auth/csrf`
+
+Response `200`:
+
+```json
+{
+  "csrfToken": "base64url-token"
 }
 ```
 

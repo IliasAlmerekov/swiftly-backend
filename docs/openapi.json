@@ -63,6 +63,20 @@
           "authenticated": { "type": "boolean", "enum": [true] }
         }
       },
+      "AuthCsrfResponse": {
+        "type": "object",
+        "required": ["csrfToken"],
+        "properties": {
+          "csrfToken": { "type": "string", "minLength": 1 }
+        }
+      },
+      "AuthRefreshResponse": {
+        "type": "object",
+        "required": ["authenticated"],
+        "properties": {
+          "authenticated": { "type": "boolean", "enum": [true] }
+        }
+      },
       "AuthRefreshRequest": {
         "type": "object",
         "description": "Refresh token is resolved from cookie. Request body refreshToken is not supported."
@@ -86,7 +100,10 @@
         "required": ["success", "message"],
         "properties": {
           "success": { "type": "boolean", "enum": [true] },
-          "message": { "type": "string" }
+          "message": {
+            "type": "string",
+            "enum": ["Logged out", "Logged out from all sessions"]
+          }
         }
       },
       "AdminsResponse": { "type": "array", "items": { "$ref": "#/components/schemas/AuthUser" } },
@@ -271,6 +288,30 @@
         }
       }
     },
+    "/api/auth/csrf": {
+      "get": {
+        "summary": "Get CSRF bootstrap token",
+        "description": "Returns CSRF token from cookie context. Public endpoint; no auth required.",
+        "responses": {
+          "200": {
+            "description": "CSRF token for browser state-changing requests",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthCsrfResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/me": {
       "get": {
         "summary": "Return authenticated user profile",
@@ -320,13 +361,7 @@
             },
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": ["authenticated"],
-                  "properties": {
-                    "authenticated": { "type": "boolean", "enum": [true] }
-                  }
-                }
+                "schema": { "$ref": "#/components/schemas/AuthRefreshResponse" }
               }
             }
           },

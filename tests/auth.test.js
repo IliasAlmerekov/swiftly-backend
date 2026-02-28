@@ -145,14 +145,18 @@ describe("Authentication Tests", () => {
     const agent = request.agent(app);
     const csrfToken = await bootstrapCsrf(agent);
 
-    await agent
+    const response = await agent
       .post("/api/auth/refresh")
       .set("X-CSRF-Token", csrfToken)
       .send({ refreshToken: "body-only-token" })
-      .expect(400)
-      .expect(({ body }) => {
-        expect(body).toHaveProperty("code", "AUTH_COOKIE_REQUIRED");
-      });
+      .expect(400);
+
+    expect(response.body).toHaveProperty("code", "AUTH_COOKIE_REQUIRED");
+    expect(response.headers["set-cookie"] ?? []).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("__Host-swiftly_helpdesk_at="),
+      ])
+    );
   });
 
   test("should reject reuse of rotated refresh token and allow latest token", async () => {
@@ -332,7 +336,7 @@ describe("Authentication Tests", () => {
       });
   });
 
-  test("should reject bearer-only auth for protected endpoint", async () => {
+  test("should reject bearer-only auth for browser auth endpoints", async () => {
     const registerAgent = request.agent(app);
     const registerCsrf = await bootstrapCsrf(registerAgent);
 
@@ -350,10 +354,24 @@ describe("Authentication Tests", () => {
       "__Host-swiftly_helpdesk_at="
     );
     const token = accessCookie.split(";")[0].split("=")[1];
+    const browserAgent = request.agent(app);
+    const browserCsrf = await bootstrapCsrf(browserAgent);
 
-    await request(app)
+    await browserAgent
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(401);
+
+    await browserAgent
       .get("/api/auth/admins")
       .set("Authorization", `Bearer ${token}`)
+      .expect(401);
+
+    await browserAgent
+      .post("/api/auth/logout")
+      .set("Authorization", `Bearer ${token}`)
+      .set("X-CSRF-Token", browserCsrf)
+      .send({})
       .expect(401);
   });
 

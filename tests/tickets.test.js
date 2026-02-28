@@ -273,4 +273,27 @@ describe("Ticket Tests", () => {
         });
       });
   });
+
+  test("should reject ticket create with invalid csrf token", async () => {
+    const { agent } = await createUserSession({
+      email: "invalid-csrf-ticket@example.com",
+      password: "password123",
+      name: "Invalid Csrf Ticket User",
+    });
+
+    await agent
+      .post("/api/tickets")
+      .set("X-CSRF-Token", "invalid-csrf-token")
+      .send({
+        title: "Invalid CSRF Ticket",
+        description: "Expected csrf failure",
+      })
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          code: "CSRF_INVALID",
+          message: "Invalid CSRF token",
+        });
+      });
+  });
 });
