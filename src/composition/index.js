@@ -25,7 +25,10 @@ import JwtTokenProvider from "../infrastructure/security/JwtTokenProvider.js";
 import CloudinaryFileStorage from "../infrastructure/storage/CloudinaryFileStorage.js";
 import { createAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createCsrfProtectionMiddleware } from "../middlewares/csrfMiddleware.js";
-import { errorHandler } from "../middlewares/errorHandler.js";
+import {
+  createErrorHandler,
+  errorHandler,
+} from "../middlewares/errorHandler.js";
 import { notFound } from "../middlewares/notFound.js";
 import { requestLogger } from "../middlewares/requestLogger.js";
 import AIRequestLog from "../models/aiLogs.js";
@@ -58,6 +61,18 @@ const createRateLimiters = () => ({
   aiLimiter: rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 60,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  }),
+  apiLimiter: rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  }),
+  uploadLimiter: rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 30,
     standardHeaders: "draft-7",
     legacyHeaders: false,
   }),
@@ -176,9 +191,11 @@ export const createApp = ({
   container = getDefaultContainer(),
   registerBeforeErrorHandlers,
   disableRateLimiting = false,
+  onCatastrophic,
 } = {}) => {
   const app = express();
-  const { authLimiter, aiLimiter } = createRateLimiters();
+  const { authLimiter, aiLimiter, apiLimiter, uploadLimiter } =
+    createRateLimiters();
 
   app.disable("x-powered-by");
   app.use(cors(corsOptions));
@@ -210,18 +227,19 @@ export const createApp = ({
 
   if (disableRateLimiting) {
     app.use("/api/auth", container.routes.authRoutes);
+    app.use("/api/tickets", container.routes.ticketRoutes);
+    app.use("/api/solutions", container.routes.solutionRoutes);
+    app.use("/api/ai", container.routes.aiRoutes);
+    app.use("/api/users", container.routes.userRoutes);
+    app.use("/api/upload", container.routes.uploadRoutes);
   } else {
     app.use("/api/auth", authLimiter, container.routes.authRoutes);
-  }
-  app.use("/api/tickets", container.routes.ticketRoutes);
-  app.use("/api/solutions", container.routes.solutionRoutes);
-  if (disableRateLimiting) {
-    app.use("/api/ai", container.routes.aiRoutes);
-  } else {
+    app.use("/api/tickets", apiLimiter, container.routes.ticketRoutes);
+    app.use("/api/solutions", apiLimiter, container.routes.solutionRoutes);
     app.use("/api/ai", aiLimiter, container.routes.aiRoutes);
+    app.use("/api/users", apiLimiter, container.routes.userRoutes);
+    app.use("/api/upload", uploadLimiter, container.routes.uploadRoutes);
   }
-  app.use("/api/users", container.routes.userRoutes);
-  app.use("/api/upload", container.routes.uploadRoutes);
 
   app.get("/", (_req, res) => {
     res.send("API live");
@@ -246,16 +264,25 @@ export const createApp = ({
   }
 
   app.use(notFound);
-  app.use(errorHandler);
+  app.use(
+    onCatastrophic ? createErrorHandler({ onCatastrophic }) : errorHandler
+  );
 
   return app;
 };
 
 export const createBootstrap = ({ container = getDefaultContainer() } = {}) => {
-  const app = createApp({ container });
   let server;
   let cleanupInterval;
   let shuttingDown = false;
+
+  /* Forward reference – the error handler can trigger shutdown for
+     catastrophic (non-operational) errors while still sending a response. */
+  const onCatastrophic = err => {
+    shutdown("catastrophic", err).then(code => process.exit(code));
+  };
+
+  const app = createApp({ container, onCatastrophic });
 
   const start = async () => {
     await mongoose.connect(config.mongoUri);
@@ -278,6 +305,8 @@ export const createBootstrap = ({ container = getDefaultContainer() } = {}) => {
     return server;
   };
 
+  const SHUTDOWN_TIMEOUT_MS = 10_000;
+
   const shutdown = async (signal, error) => {
     if (shuttingDown) {
       return error ? 1 : 0;
@@ -288,6 +317,13 @@ export const createBootstrap = ({ container = getDefaultContainer() } = {}) => {
       logger.error({ err: error }, "Shutdown due to error");
     }
     logger.info({ signal }, "Shutting down");
+
+    /* Hard deadline — force exit if graceful close hangs */
+    const forceTimer = setTimeout(() => {
+      logger.error("Shutdown timed out, forcing exit");
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+    if (typeof forceTimer.unref === "function") forceTimer.unref();
 
     if (cleanupInterval) {
       clearInterval(cleanupInterval);
