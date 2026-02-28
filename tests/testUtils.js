@@ -1,208 +1,232 @@
-// 🛠️ TEST UTILITIES - Helper functions to make testing easier
-// 
-// This file contains common functions that our tests use
-// It helps avoid repeating the same code in multiple test files
+// Test utilities — shared cookie-based auth helpers
+//
+// Every helper uses httpOnly cookie auth + CSRF double-submit,
+// matching the production auth contract (see docs/AUTH_CONTRACT.md).
 
-import request from 'supertest';
-import app from './app.js';
+import request from "supertest";
+import app from "./app.js";
+import User from "../src/models/userModel.js";
+
+// ---------------------------------------------------------------------------
+// Cookie helpers
+// ---------------------------------------------------------------------------
+
+/** Find the first Set-Cookie string whose name starts with `prefix`. */
+export const getCookieByPrefix = (cookies = [], prefix) =>
+  cookies.find(cookie => cookie.startsWith(prefix));
+
+/** Extract just the `name=value` pair (strip attributes after `;`). */
+export const toCookiePair = cookie => cookie.split(";")[0];
+
+/** Return the *value* of a named cookie from a Set-Cookie array. */
+export const getCookieValue = (cookies = [], cookieName) => {
+  const cookie = getCookieByPrefix(cookies, `${cookieName}=`);
+  if (!cookie) return undefined;
+  return cookie.split(";")[0].split("=").slice(1).join("=");
+};
+
+/** Read the CSRF token value from Set-Cookie headers. */
+export const getCsrfToken = cookies =>
+  getCookieValue(cookies, "__Host-swiftly_helpdesk_csrf") ||
+  getCookieValue(cookies, "swiftly_helpdesk_csrf");
 
 /**
- * Creates a user and returns their authentication token
- * 
- * @param {Object} userData - User data for registration
- * @param {string} userData.email - User's email
- * @param {string} userData.password - User's password  
- * @param {string} userData.name - User's name
- * @param {string} [userData.role='user'] - User's role (user or admin)
- * @returns {Promise<{token: string, user: Object}>} Token and user data
+ * Hit a safe endpoint to obtain the CSRF cookie, then return the token.
+ *
+ * @param {import("supertest").SuperAgentTest} agent
+ * @returns {Promise<string>} CSRF token value
  */
-export const createUserAndGetToken = async (userData = {}) => {
-  // Set default values if not provided
-  const defaultUserData = {
-    email: 'test@example.com',
-    password: 'password123',
-    name: 'Test User',
-    role: 'user',
-    ...userData // Override with provided data
+export const bootstrapCsrf = async agent => {
+  const response = await agent.get("/api/health").expect(200);
+  const csrfToken = getCsrfToken(response.headers["set-cookie"]);
+  expect(csrfToken).toBeTruthy();
+  return csrfToken;
+};
+
+// ---------------------------------------------------------------------------
+// Session helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Register a regular user and return an authenticated agent + CSRF token.
+ *
+ * @param {Object} userData - Registration payload (email, password, name)
+ * @returns {Promise<{agent: import("supertest").SuperAgentTest, csrfToken: string}>}
+ */
+export const createUserSession = async (userData = {}) => {
+  const defaults = {
+    email: "test@example.com",
+    password: "password123",
+    name: "Test User",
+    ...userData,
   };
 
-  try {
-    const response = await request(app)
-      .post('/api/auth/register')
-      .send(defaultUserData)
-      .expect(201);
-    
-    return {
-      token: response.body.token,
-      user: { _id: response.body.userId } // Create user object with just the ID
-    };
-  } catch (error) {
-    console.error('Failed to create user and get token:', error);
-    throw error;
-  }
+  const agent = request.agent(app);
+  const csrfToken = await bootstrapCsrf(agent);
+
+  await agent
+    .post("/api/auth/register")
+    .set("X-CSRF-Token", csrfToken)
+    .send(defaults)
+    .expect(201);
+
+  return { agent, csrfToken };
 };
 
 /**
- * Creates an admin user and returns their authentication token
- * 
- * @param {Object} adminData - Admin user data
- * @returns {Promise<{token: string, user: Object}>} Token and user data
+ * Create an authenticated admin session.
+ *
+ * The helper registers a normal user via public API (stable auth flow),
+ * then promotes that user to admin directly in DB for authorization tests.
+ *
+ * @param {Object} [adminData] - Override admin fields
+ * @returns {Promise<{agent: import("supertest").SuperAgentTest, csrfToken: string}>}
  */
-export const createAdminAndGetToken = async (adminData = {}) => {
-  const defaultAdminData = {
-    email: 'admin@example.com',
-    password: 'adminpassword123',
-    name: 'Admin User',
-    role: 'admin',
-    ...adminData
+export const createAdminSession = async (adminData = {}) => {
+  const defaults = {
+    email: "admin@example.com",
+    password: "password123",
+    name: "Admin User",
+    role: "admin",
+    ...adminData,
   };
 
-  return createUserAndGetToken(defaultAdminData);
+  const session = await createUserSession({
+    email: defaults.email,
+    password: defaults.password,
+    name: defaults.name,
+  });
+
+  const updatedAdmin = await User.findOneAndUpdate(
+    { email: defaults.email.toLowerCase() },
+    { role: "admin" },
+    { new: true }
+  );
+
+  expect(updatedAdmin).toBeTruthy();
+  expect(updatedAdmin.role).toBe("admin");
+
+  return session;
 };
 
 /**
- * Creates a ticket for a user
- * 
- * @param {string} token - Authentication token
- * @param {Object} ticketData - Ticket data
- * @param {string} ticketData.title - Ticket title
- * @param {string} ticketData.description - Ticket description
- * @param {string} [ticketData.priority='medium'] - Ticket priority
- * @param {string} [ticketData.category='general'] - Ticket category
- * @returns {Promise<Object>} Created ticket
- */
-export const createTicket = async (token, ticketData = {}) => {
-  const defaultTicketData = {
-    title: 'Test Ticket',
-    description: 'Test ticket description',
-    priority: 'medium',
-    category: 'general',
-    ...ticketData
-  };
-
-  try {
-    const response = await request(app)
-      .post('/api/tickets')
-      .set('Authorization', `Bearer ${token}`)
-      .send(defaultTicketData)
-      .expect(201);
-    
-    return response.body;
-  } catch (error) {
-    console.error('Failed to create ticket:', error);
-    throw error;
-  }
-};
-
-/**
- * Creates multiple test users with different roles
- * Useful for tests that need various user types
- * 
- * @returns {Promise<Object>} Object with regular user and admin user tokens
+ * Create both a regular-user session and an admin session.
+ *
+ * @returns {Promise<{regularUser: {agent, csrfToken}, adminUser: {agent, csrfToken}}>}
  */
 export const createTestUsers = async () => {
-  const regularUser = await createUserAndGetToken({
-    email: 'user@test.com',
-    name: 'Regular User',
-    role: 'user'
+  const regularUser = await createUserSession({
+    email: "user@test.com",
+    name: "Regular User",
   });
 
-  const adminUser = await createAdminAndGetToken({
-    email: 'admin@test.com',
-    name: 'Admin User'
+  const adminUser = await createAdminSession({
+    email: "admin@test.com",
+    name: "Admin User",
   });
 
-  return {
-    regularUser,
-    adminUser
+  return { regularUser, adminUser };
+};
+
+// ---------------------------------------------------------------------------
+// Ticket helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a ticket using an authenticated session.
+ *
+ * @param {{agent: import("supertest").SuperAgentTest, csrfToken: string}} session
+ * @param {Object} [ticketData] - Override ticket fields
+ * @returns {Promise<Object>} Created ticket body
+ */
+export const createTicket = async ({ agent, csrfToken }, ticketData = {}) => {
+  const defaults = {
+    title: "Test Ticket",
+    description: "Test ticket description",
+    priority: "medium",
+    category: "general",
+    ...ticketData,
   };
+
+  const response = await agent
+    .post("/api/tickets")
+    .set("X-CSRF-Token", csrfToken)
+    .send(defaults)
+    .expect(201);
+
+  return response.body;
 };
 
 /**
- * Helper to make authenticated requests
- * 
+ * Make an authenticated request using a cookie session.
+ *
  * @param {string} method - HTTP method (get, post, put, delete)
  * @param {string} url - Request URL
- * @param {string} token - Authentication token
- * @param {Object} [data] - Request body data
- * @returns {Promise} Supertest request
+ * @param {{agent: import("supertest").SuperAgentTest, csrfToken: string}} session
+ * @param {Object} [data] - Request body for POST/PUT
+ * @returns {import("supertest").Test}
  */
-export const makeAuthenticatedRequest = (method, url, token, data = null) => {
-  const req = request(app)[method.toLowerCase()](url)
-    .set('Authorization', `Bearer ${token}`);
-  
-  if (data && (method.toLowerCase() === 'post' || method.toLowerCase() === 'put')) {
+export const makeAuthenticatedRequest = (
+  method,
+  url,
+  { agent, csrfToken },
+  data = null
+) => {
+  const req = agent[method.toLowerCase()](url).set("X-CSRF-Token", csrfToken);
+
+  if (data && ["post", "put", "patch"].includes(method.toLowerCase())) {
     req.send(data);
   }
-  
+
   return req;
 };
 
-/**
- * Sample data generators for tests
- */
+// ---------------------------------------------------------------------------
+// Sample data & validators (unchanged, still useful as fixtures)
+// ---------------------------------------------------------------------------
+
 export const sampleData = {
   user: {
-    email: 'sample@example.com',
-    password: 'samplepassword123',
-    name: 'Sample User',
-    role: 'user'
+    email: "sample@example.com",
+    password: "samplepassword123",
+    name: "Sample User",
   },
-  
+
   admin: {
-    email: 'sampleadmin@example.com', 
-    password: 'adminpassword123',
-    name: 'Sample Admin',
-    role: 'admin'
+    email: "sampleadmin@example.com",
+    password: "adminpassword123",
+    name: "Sample Admin",
+    role: "admin",
   },
-  
+
   ticket: {
-    title: 'Sample Ticket',
-    description: 'This is a sample ticket for testing',
-    priority: 'medium',
-    category: 'technical'
+    title: "Sample Ticket",
+    description: "This is a sample ticket for testing",
+    priority: "medium",
+    category: "technical",
   },
-  
+
   comment: {
-    text: 'This is a test comment'
-  }
-};
-
-/**
- * Validation helpers
- */
-export const validators = {
-  /**
-   * Checks if a response has the expected user properties
-   */
-  expectValidUser: (user) => {
-    expect(user).toHaveProperty('_id');
-    expect(user).toHaveProperty('email');
-    expect(user).toHaveProperty('name');
-    expect(user).toHaveProperty('role');
-    expect(user).not.toHaveProperty('password'); // Password should never be returned
+    text: "This is a test comment",
   },
-  
-  /**
-   * Checks if a response has the expected ticket properties
-   */
-  expectValidTicket: (ticket) => {
-    expect(ticket).toHaveProperty('_id');
-    expect(ticket).toHaveProperty('title');
-    expect(ticket).toHaveProperty('description');
-    expect(ticket).toHaveProperty('status');
-    expect(ticket).toHaveProperty('priority');
-    expect(ticket).toHaveProperty('owner');
-    expect(ticket).toHaveProperty('createdAt');
-  }
 };
 
-export default {
-  createUserAndGetToken,
-  createAdminAndGetToken,
-  createTicket,
-  createTestUsers,
-  makeAuthenticatedRequest,
-  sampleData,
-  validators
+export const validators = {
+  expectValidUser: user => {
+    expect(user).toHaveProperty("_id");
+    expect(user).toHaveProperty("email");
+    expect(user).toHaveProperty("name");
+    expect(user).toHaveProperty("role");
+    expect(user).not.toHaveProperty("password");
+  },
+
+  expectValidTicket: ticket => {
+    expect(ticket).toHaveProperty("_id");
+    expect(ticket).toHaveProperty("title");
+    expect(ticket).toHaveProperty("description");
+    expect(ticket).toHaveProperty("status");
+    expect(ticket).toHaveProperty("priority");
+    expect(ticket).toHaveProperty("owner");
+    expect(ticket).toHaveProperty("createdAt");
+  },
 };
