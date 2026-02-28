@@ -26,7 +26,6 @@ describe("authMiddleware", () => {
     await middleware(req, res, next);
 
     expect(authService.resolveAuthContext).toHaveBeenCalledWith({
-      authorizationHeader: "Bearer access-token",
       accessToken: "cookie-access-token",
     });
     expect(req.user).toEqual({ _id: "u1", role: "user" });
@@ -50,4 +49,5 @@ describe("authMiddleware", () => {
 
     expect(next).toHaveBeenCalledWith(error);
   });
+
 });

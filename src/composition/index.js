@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 
 import cloudinary from "../config/cloudinary.js";
+import { getAuthEndpointPolicy } from "../config/authEndpointPolicy.js";
 import { config } from "../config/env.js";
 import { corsOptions } from "../config/cors.js";
 import { getRedisClient, isRedisEnabled } from "../config/redis.js";
@@ -23,6 +24,7 @@ import BcryptPasswordHasher from "../infrastructure/security/BcryptPasswordHashe
 import JwtTokenProvider from "../infrastructure/security/JwtTokenProvider.js";
 import CloudinaryFileStorage from "../infrastructure/storage/CloudinaryFileStorage.js";
 import { createAuthMiddleware } from "../middlewares/authMiddleware.js";
+import { createCsrfProtectionMiddleware } from "../middlewares/csrfMiddleware.js";
 import { errorHandler } from "../middlewares/errorHandler.js";
 import { notFound } from "../middlewares/notFound.js";
 import { requestLogger } from "../middlewares/requestLogger.js";
@@ -92,7 +94,10 @@ export const createContainer = () => {
     logger,
   });
 
-  const authController = createAuthController({ authService });
+  const authController = createAuthController({
+    authService,
+    resolveAuthEndpointPolicy: getAuthEndpointPolicy,
+  });
   const ticketController = createTicketController({ ticketService });
   const solutionController = createSolutionController({ solutionService });
   const userController = createUserController({ userService });
@@ -107,6 +112,7 @@ export const createContainer = () => {
   });
 
   const authMiddleware = createAuthMiddleware({ authService });
+  const csrfProtectionMiddleware = createCsrfProtectionMiddleware();
 
   const routes = {
     authRoutes: createAuthRoutes({ authController, authMiddleware }),
@@ -151,6 +157,7 @@ export const createContainer = () => {
     },
     middlewares: {
       authMiddleware,
+      csrfProtectionMiddleware,
     },
     routes,
   };
@@ -199,6 +206,7 @@ export const createApp = ({
     return apiCsp(req, res, next);
   });
   app.use(express.json({ limit: config.requestBodyLimit }));
+  app.use("/api", container.middlewares.csrfProtectionMiddleware);
 
   if (disableRateLimiting) {
     app.use("/api/auth", container.routes.authRoutes);
