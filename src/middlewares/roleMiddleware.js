@@ -1,16 +1,21 @@
+import { AppError } from "../utils/AppError.js";
+
+const FORBIDDEN = () =>
+  new AppError("Access denied", { statusCode: 403, code: "FORBIDDEN" });
+
 const requireRole = (roles = []) => {
-  return (req, res, next) => {
+  return (req, _res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Access denied" });
+      return next(FORBIDDEN());
     }
     next();
   };
 };
 
 const requireRoleOrSelf = (roles = []) => {
-  return (req, res, next) => {
+  return (req, _res, next) => {
     if (!req.user) {
-      return res.status(403).json({ message: "Access denied" });
+      return next(FORBIDDEN());
     }
     if (roles.includes(req.user.role)) {
       return next();
@@ -23,7 +28,7 @@ const requireRoleOrSelf = (roles = []) => {
     ) {
       return next();
     }
-    return res.status(403).json({ message: "Access denied" });
+    return next(FORBIDDEN());
   };
 };
 
