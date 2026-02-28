@@ -1,66 +1,12 @@
 import request from "supertest";
 import app from "./app.js";
-import User from "../src/models/userModel.js";
-
-const getCookieByPrefix = (cookies = [], prefix) =>
-  cookies.find(cookie => cookie.startsWith(prefix));
-
-const getCookieValue = (cookies = [], cookieName) => {
-  const cookie = getCookieByPrefix(cookies, `${cookieName}=`);
-  if (!cookie) {
-    return undefined;
-  }
-
-  return cookie.split(";")[0].split("=").slice(1).join("=");
-};
-
-const getCsrfToken = cookies =>
-  getCookieValue(cookies, "__Host-swiftly_helpdesk_csrf") ||
-  getCookieValue(cookies, "swiftly_helpdesk_csrf");
-
-const bootstrapCsrf = async agent => {
-  const response = await agent.get("/api/health").expect(200);
-  const csrfToken = getCsrfToken(response.headers["set-cookie"]);
-  expect(csrfToken).toBeTruthy();
-  return csrfToken;
-};
+import {
+  bootstrapCsrf,
+  createUserSession,
+  createAdminSession,
+} from "./testUtils.js";
 
 describe("Ticket Tests", () => {
-  const createUserSession = async userData => {
-    const agent = request.agent(app);
-    const csrfToken = await bootstrapCsrf(agent);
-
-    await agent
-      .post("/api/auth/register")
-      .set("X-CSRF-Token", csrfToken)
-      .send(userData)
-      .expect(201);
-
-    return { agent, csrfToken };
-  };
-
-  const createAdminSession = async () => {
-    const adminData = {
-      email: "admin@example.com",
-      password: "password123",
-      name: "Admin User",
-      role: "admin",
-    };
-
-    await User.create(adminData);
-
-    const agent = request.agent(app);
-    const csrfToken = await bootstrapCsrf(agent);
-
-    await agent
-      .post("/api/auth/login")
-      .set("X-CSRF-Token", csrfToken)
-      .send({ email: adminData.email, password: adminData.password })
-      .expect(200);
-
-    return { agent, csrfToken };
-  };
-
   test("should create a new ticket for authenticated user", async () => {
     const { agent, csrfToken } = await createUserSession({
       email: "ticketuser@example.com",
@@ -174,7 +120,9 @@ describe("Ticket Tests", () => {
       .send({ title: "Ticket 3", description: "Desc 3", priority: "high" })
       .expect(201);
 
-    const firstPage = await agent.get("/api/tickets?scope=mine&limit=2").expect(200);
+    const firstPage = await agent
+      .get("/api/tickets?scope=mine&limit=2")
+      .expect(200);
 
     expect(firstPage.body.items).toHaveLength(2);
     expect(firstPage.body.pageInfo).toHaveProperty("hasNextPage", true);
@@ -211,7 +159,9 @@ describe("Ticket Tests", () => {
       })
       .expect(201);
 
-    const response = await adminUser.agent.get("/api/tickets?scope=all").expect(200);
+    const response = await adminUser.agent
+      .get("/api/tickets?scope=all")
+      .expect(200);
 
     expect(Array.isArray(response.body.items)).toBe(true);
     expect(response.body.items.length).toBeGreaterThan(0);

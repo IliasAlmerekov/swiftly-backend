@@ -1,30 +1,12 @@
 import request from "supertest";
 import app from "./app.js";
-
-const getCookieByPrefix = (cookies = [], prefix) =>
-  cookies.find(cookie => cookie.startsWith(prefix));
-
-const toCookiePair = cookie => cookie.split(";")[0];
-
-const getCookieValue = (cookies = [], cookieName) => {
-  const cookie = getCookieByPrefix(cookies, `${cookieName}=`);
-  if (!cookie) {
-    return undefined;
-  }
-
-  return cookie.split(";")[0].split("=").slice(1).join("=");
-};
-
-const getCsrfToken = cookies =>
-  getCookieValue(cookies, "__Host-swiftly_helpdesk_csrf") ||
-  getCookieValue(cookies, "swiftly_helpdesk_csrf");
-
-const bootstrapCsrf = async agent => {
-  const response = await agent.get("/api/health").expect(200);
-  const csrfToken = getCsrfToken(response.headers["set-cookie"]);
-  expect(csrfToken).toBeTruthy();
-  return csrfToken;
-};
+import {
+  getCookieByPrefix,
+  toCookiePair,
+  getCookieValue,
+  getCsrfToken,
+  bootstrapCsrf,
+} from "./testUtils.js";
 
 describe("Authentication Tests", () => {
   test("should register a new user successfully with strict response body", async () => {
@@ -289,7 +271,9 @@ describe("Authentication Tests", () => {
       registerResponse.headers["set-cookie"],
       "__Host-swiftly_helpdesk_rt="
     );
-    const firstSessionRefreshCookiePair = toCookiePair(firstSessionRefreshCookie);
+    const firstSessionRefreshCookiePair = toCookiePair(
+      firstSessionRefreshCookie
+    );
 
     const secondSession = await agent
       .post("/api/auth/refresh")
@@ -301,7 +285,9 @@ describe("Authentication Tests", () => {
       secondSession.headers["set-cookie"],
       "__Host-swiftly_helpdesk_rt="
     );
-    const secondSessionRefreshCookiePair = toCookiePair(secondSessionRefreshCookie);
+    const secondSessionRefreshCookiePair = toCookiePair(
+      secondSessionRefreshCookie
+    );
 
     await agent
       .post("/api/auth/logout")
