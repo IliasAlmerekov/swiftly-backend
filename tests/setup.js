@@ -21,10 +21,6 @@ if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'test';
 }
 
-console.log('🔧 Test environment setup:');
-console.log('- NODE_ENV:', process.env.NODE_ENV);
-console.log('- JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Missing');
-
 // Create a fake database in memory for testing
 let mongoServer;
 
@@ -58,21 +54,16 @@ beforeAll(async () => {
     // Create an in-memory MongoDB database for testing
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
-    
+
     // Connect to the test database
     await mongoose.connect(mongoUri);
-    
-    console.log('✅ Test database connected');
   } catch (error) {
-    console.error('❌ MongoDB Memory Server Fehler:', error.message);
-    
-    // Fallback: Verwende echte MongoDB wenn Memory Server fehlschlägt
+    // Fallback: use real MongoDB if Memory Server fails
     if (process.env.MONGO_URI) {
       const workerUri = buildWorkerDbUri(process.env.MONGO_URI);
-      console.log('🔄 Fallback: Verwende echte Test-Datenbank');
       await mongoose.connect(workerUri);
-      console.log('✅ Echte Test-Datenbank verbunden');
     } else {
+      console.error('Test database setup failed:', error.message); // eslint-disable-line no-console
       throw new Error('Weder Memory Server noch Test-Datenbank verfügbar');
     }
   }
@@ -83,25 +74,21 @@ afterEach(async () => {
   // Clean up the database after each test
   // This ensures tests don't affect each other
   const collections = mongoose.connection.collections;
-  
+
   for (const key in collections) {
     const collection = collections[key];
     await collection.deleteMany({});
   }
-  
-  console.log('🧹 Test database cleaned');
 });
 
 // This runs once after all tests finish
 afterAll(async () => {
   // Disconnect from the database and stop the server
   await mongoose.disconnect();
-  
+
   if (mongoServer) {
     await mongoServer.stop();
   }
-  
-  console.log('❌ Test database disconnected');
 });
 
 export { mongoServer };

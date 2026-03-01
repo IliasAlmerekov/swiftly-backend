@@ -27,7 +27,6 @@ describe('🏠 Basic API Tests', () => {
     // Check if the response text is what we expect
     expect(response.text).toBe('API live');
     
-    console.log('✅ Homepage test passed!');
   });
 
   // Test 2: Can we reach the health check?
@@ -36,13 +35,11 @@ describe('🏠 Basic API Tests', () => {
     const response = await request(app)
       .get('/api/health')
       .expect(200);
-    
+
     // Check if the response has the right structure
     expect(response.body).toHaveProperty('status', 'OK');
     expect(response.body).toHaveProperty('service', 'Swiftly Helpdesk Backend');
     expect(response.body).toHaveProperty('timestamp');
-    
-    console.log('✅ Health check test passed!');
   });
 
   // Test 3: What happens when we go to a page that doesn't exist?
@@ -51,8 +48,6 @@ describe('🏠 Basic API Tests', () => {
     const response = await request(app)
       .get('/api/non-existent-route')
       .expect(404);
-    
-    console.log('✅ 404 test passed!');
   });
 
   // Test 4: API docs endpoint should be available
