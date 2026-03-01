@@ -5,8 +5,6 @@ import { config } from "../../config/env.js";
 const buildAccessPayload = user => ({
   id: user._id.toString(),
   role: user.role,
-  email: user.email,
-  name: user.name,
   tokenType: "access",
 });
 
