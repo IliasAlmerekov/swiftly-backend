@@ -27,7 +27,7 @@ export const createUploadAttachmentUseCase = ({ ticketRepository, fileStorage })
     } finally {
       try {
         await fileStoragePort.removeTemporaryFile(file.path);
-      } catch (_removeError) {
+      } catch {
         // Storage adapter controls observability and must keep cleanup failures non-fatal.
       }
     }
